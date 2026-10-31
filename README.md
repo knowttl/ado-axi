@@ -30,7 +30,7 @@ numbers against your own organization.
 
 | Interface | Context (Turn 0) | Output | Measured payload | Write Safety | Guidance |
 |---|---|---|---|---|---|
-| **`ado-axi`** | **86 tokens** (`SKILL.md` frontmatter; body 3,315 only when the agent opens it) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
+| **`ado-axi`** | Skill frontmatter always; body on demand (see [recorded measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
 | **Raw CLI** (`az devops`) | ~0 tokens | JSON / ASCII | Baseline (full REST payloads, slow startup) | ❌ Direct mutations | Human text / exit codes |
 | **Azure DevOps MCP** | **16,356 tokens** (40 tool schemas, v2.10.0) | JSON-RPC | Highest overhead (full schemas resent every turn) | Varies | Schema validation errors |
 
@@ -137,16 +137,9 @@ cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=paylo
 
 `work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
 
-TD-063 adds GET-only discovery with `work-item link types`, `query run <id|path>`, `area list`, and `iteration list`.
-Saved queries accept a GUID or project-relative path such as `Shared Queries/Open bugs` and share the work-item list field aliases and reference-name handling.
-`query run --limit` defaults to 30 and bounds the server request and displayed work items, including with `--full`; counts report only items shown.
-Linked queries show distinct source and target work items.
-Area and iteration lists include the project root and tree paths, with iteration start/finish dates when configured.
-Their `--depth` defaults to 10 (0 shows only the root), and `--limit` defaults to 50.
-`--full` shows every fetched path at the requested depth; `left-out` counts fetched paths omitted by the display limit, and help identifies deeper branches.
-Link types default to 50 rows and support `--full`; all these lists accept `--fields`.
-See [Boards read commands](doc/boards-reads.md) for examples and count semantics.
-`--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
+See [Boards read commands](doc/boards-reads.md) for relation type discovery, saved queries, area and iteration paths, and their limit and count semantics.
+
+`work-item list --fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 Unknown aliases and API-rejected reference names produce errors.
 `work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
 

@@ -12,8 +12,10 @@ ado-axi area list --depth 2 --limit 20
 ado-axi iteration list --depth 2 --full
 ```
 
-Saved query paths are relative to the selected project; quote paths containing spaces.
-Saved queries use the same work-item rendering and field selection as `work-item list`.
+Saved queries accept a GUID or a path relative to the selected project; quote paths containing spaces.
+Paths accept forward slashes or backslashes as separators.
+Saved queries use the same work-item rendering and [field selection](../README.md#use) as `work-item list`.
+Field values are read at the query response's `asOf` timestamp, so historical queries display values from that time.
 The default limit is 30 and is sent to the query endpoint as `$top`, including when `--full` is passed.
 Counts report the number of work items shown, never an exhaustive query total.
 Linked queries display distinct source and target work items within the server response, bounded by the display limit.
