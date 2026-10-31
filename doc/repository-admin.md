@@ -12,8 +12,8 @@ ado-axi repo update --repo RenamedRepo --default-branch main --disabled false
 ado-axi repo delete --repo RenamedRepo --confirm-delete
 ado-axi repo import --repo EmptyRepo --source-url https://example.com/public/repo.git
 ado-axi repo import --repo EmptyRepo --source-url https://example.com/private/repo.git --service-endpoint <endpoint-id>
-ado-axi repo policy create --config '{"type":{"id":"fa4e907d-c16b-4a4c-9dfa-4906e5d171dd"},"isEnabled":true,"isBlocking":true,"settings":{"minimumApproverCount":2,"scope":[{"repositoryId":"11111111-1111-4111-8111-111111111111","refName":"refs/heads/main","matchKind":"Exact"}]}}'
-ado-axi repo policy update 7 --config '{"isEnabled":false}' --if-rev 3
+ado-axi repo policy create --policy-json '{"type":{"id":"fa4e907d-c16b-4a4c-9dfa-4906e5d171dd"},"isEnabled":true,"isBlocking":true,"settings":{"minimumApproverCount":2,"scope":[{"repositoryId":"11111111-1111-4111-8111-111111111111","refName":"refs/heads/main","matchKind":"Exact"}]}}'
+ado-axi repo policy update 7 --policy-json '{"isEnabled":false}' --if-rev 3
 ado-axi repo policy delete 7 --if-rev 4 --confirm-delete
 ```
 
@@ -42,6 +42,8 @@ Output reports the import request ID and status, with a raw read command to chec
 
 ## Policies
 
+Pass policy JSON through `--policy-json`; `--config <path>` selects the saved profile configuration file.
+Both create and update use the saved default profile or `--profile <name>` when org/project flags are omitted.
 Create accepts a policy configuration JSON object with `type.id`, `settings`, `isEnabled`, and `isBlocking`.
 The type ID is a GUID; settings depend on that Azure DevOps policy type.
 For branch policies, put repository and branch scope in `settings.scope`, as shown above.

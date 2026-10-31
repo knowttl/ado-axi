@@ -35,8 +35,8 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
     if (!["create", "update", "delete"].includes(operation ?? "")) {
       throw new AxiError("Use repo policy create|update|delete", "VALIDATION_ERROR");
     }
-    assertKnownFlags(args, operation === "create" ? ["config"]
-      : operation === "update" ? ["config", "if-rev"] : ["if-rev", "confirm-delete"], `repo policy ${operation}`);
+    assertKnownFlags(args, operation === "create" ? ["config", "policy-json"]
+      : operation === "update" ? ["config", "policy-json", "if-rev"] : ["config", "if-rev", "confirm-delete"], `repo policy ${operation}`);
     assertAuditPositionals(args, operation === "create" ? 0 : 1);
     const id = operation === "create" ? undefined : positive(Number(args.positionals[0]), "policy id");
     const expected = flagNumber(args, "if-rev");
@@ -47,16 +47,16 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
       if (!flagBool(args, "confirm-delete")) throw new AxiError("policy deletion requires --confirm-delete and --if-rev <n>", "VALIDATION_ERROR");
     } else {
       let value: unknown;
-      try { value = JSON.parse(required(args, "config")); } catch {
-        throw new AxiError("--config requires a policy configuration JSON object", "VALIDATION_ERROR");
+      try { value = JSON.parse(required(args, "policy-json")); } catch {
+        throw new AxiError("--policy-json requires a policy configuration JSON object", "VALIDATION_ERROR");
       }
       if (!value || typeof value !== "object" || Array.isArray(value)) {
-        throw new AxiError("--config requires a policy configuration JSON object", "VALIDATION_ERROR");
+        throw new AxiError("--policy-json requires a policy configuration JSON object", "VALIDATION_ERROR");
       }
       config = value as AuditRecord;
-      if ("id" in config || "revision" in config) throw new AxiError("omit id and revision from --config; use the policy id and --if-rev", "VALIDATION_ERROR");
+      if ("id" in config || "revision" in config) throw new AxiError("omit id and revision from --policy-json; use the policy id and --if-rev", "VALIDATION_ERROR");
       if (!Object.keys(config).length || Object.keys(config).some((key) => !["type", "settings", "isEnabled", "isBlocking"].includes(key))) {
-        throw new AxiError("--config must contain policy fields: type, settings, isEnabled, isBlocking", "VALIDATION_ERROR");
+        throw new AxiError("--policy-json must contain policy fields: type, settings, isEnabled, isBlocking", "VALIDATION_ERROR");
       }
       const type = config.type as { id?: unknown } | undefined;
       if ((operation === "create" || "type" in config)

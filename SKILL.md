@@ -277,8 +277,8 @@ ado-axi repo create --name <name>
 ado-axi repo update --repo <id|name> [--name <name>] [--default-branch <branch>] [--disabled true|false]
 ado-axi repo delete --repo <id|name> --confirm-delete
 ado-axi repo import --repo <id|name> --source-url <https-git-url> [--service-endpoint <id>]
-ado-axi repo policy create --config '<JSON object>'
-ado-axi repo policy update <id> --config '<changed fields JSON object>' [--if-rev <n>]
+ado-axi repo policy create --policy-json '<JSON object>'
+ado-axi repo policy update <id> --policy-json '<changed fields JSON object>' [--if-rev <n>]
 ado-axi repo policy delete <id> --if-rev <n> --confirm-delete
 ```
 
@@ -287,7 +287,8 @@ Repository changes precheck the selected `--repo` and mutate the resolved immuta
 Repository delete requires `--confirm-delete`; policy delete also requires a matching `--if-rev` precheck.
 Policy update sends the fetched revision and optionally checks `--if-rev` before writing.
 Repository mutations and policy DELETE have no documented atomic revision predicate.
-Policy JSON accepts `type`, `settings`, `isEnabled`, and `isBlocking`; nested settings are replaced as a whole.
+`--policy-json` accepts `type`, `settings`, `isEnabled`, and `isBlocking`; nested settings are replaced as a whole.
+`--config <path>` selects the profile configuration file; saved default and named profiles remain available.
 Import requires an existing empty repository, a credential-free HTTPS `--source-url`, and an optional service endpoint ID for authentication.
 Mutation output and errors withhold repository URLs, source details, and policy settings.
 See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for TD-065 slice 3 of 4.

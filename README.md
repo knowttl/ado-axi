@@ -131,7 +131,7 @@ ado-axi repo file /src/Program.cs --repo Web --ref main
 ado-axi ref list --repo Web --limit 50
 ado-axi repo create --name SyntheticRepo
 ado-axi repo update --repo SyntheticRepo --default-branch main
-ado-axi repo policy update 7 --config '{"isEnabled":false}' --if-rev 3
+ado-axi repo policy update 7 --policy-json '{"isEnabled":false}' --if-rev 3
 ado-axi ref create --repo Web --name feature/agent --source main
 ado-axi ref delete --repo Web --name feature/agent --old-object-id <40-hex>
 ado-axi pipeline runs --result failed

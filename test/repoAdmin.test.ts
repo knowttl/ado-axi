@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { decode } from "@toon-format/toon";
@@ -21,6 +20,7 @@ const configuration = { type: { id: typeId }, isEnabled: true, isBlocking: true,
   settings: { minimumApproverCount: 2, scope: [{ repositoryId: repoId, refName: "refs/heads/main", matchKind: "Exact" }] } };
 const policy = { ...configuration, id: 7, revision: 3, url: `https://example.com/?token=${secret}` };
 const fetchMock = vi.fn<typeof fetch>();
+const profileConfig = fileURLToPath(new URL("./fixtures/repo-admin-config.json", import.meta.url));
 const json = (value: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(value), {
   status, headers: { "content-type": "application/json" },
 });
@@ -122,7 +122,7 @@ describe("TD-065 repository administration", () => {
 describe("TD-065 repository policy administration", () => {
   it("creates a policy from a typed configuration and withholds response URLs", async () => {
     fetchMock.mockResolvedValueOnce(json(policy));
-    const result = await run(["policy", "create", "--config", JSON.stringify(configuration)]);
+    const result = await run(["policy", "create", "--policy-json", JSON.stringify(configuration)]);
     expect(result).toMatchObject({ created: { id: 7, revision: 3 } });
     expect(JSON.stringify(result)).not.toContain(secret);
     expect(sent(0)).toEqual({ method: "POST", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/policy/configurations?api-version=7.1", body: configuration });
@@ -130,7 +130,7 @@ describe("TD-065 repository policy administration", () => {
 
   it("merges requested fields and sends the fetched policy revision", async () => {
     fetchMock.mockResolvedValueOnce(json(policy)).mockResolvedValueOnce(json({ ...policy, isEnabled: false, revision: 4 }));
-    expect(await run(["policy", "update", "7", "--config", '{"isEnabled":false}']))
+    expect(await run(["policy", "update", "7", "--policy-json", '{"isEnabled":false}']))
       .toMatchObject({ updated: { id: 7, revision: 4 } });
     expect(sent(1)).toEqual({ method: "PUT", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/policy/configurations/7?api-version=7.1",
       body: { ...policy, isEnabled: false } });
@@ -139,7 +139,7 @@ describe("TD-065 repository policy administration", () => {
   it.each(["update", "delete"])("rejects stale policy revisions before %s", async (action) => {
     fetchMock.mockResolvedValueOnce(json(policy));
     await expect(run(["policy", action, "7", "--if-rev", "2", ...(action === "update"
-      ? ["--config", '{"isEnabled":false}'] : ["--confirm-delete"])]))
+      ? ["--policy-json", '{"isEnabled":false}'] : ["--confirm-delete"])]))
       .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -159,12 +159,14 @@ describe("TD-065 repository policy administration", () => {
   });
 
   it.each([
-    ["policy", "create", "--config", "{}"], ["policy", "create", "--config", "[]"],
-    ["policy", "create", "--config", '{"type":{"id":"invalid"}}'],
-    ["policy", "update", "7", "--config", '{"revision":9}'], ["policy", "update", "7", "--config", "{}"],
-    ["policy", "update", "7", "--config", '{"isenabled":false}'],
-    ["policy", "update", "7", "--config", '{"isEnabled":"false"}'],
-    ["policy", "update", "7", "--config", '{"settings":[]}'],
+    ["policy", "create"], ["policy", "create", "--policy-json"],
+    ["policy", "update", "7"], ["policy", "update", "7", "--policy-json"],
+    ["policy", "create", "--policy-json", "{}"], ["policy", "create", "--policy-json", "[]"],
+    ["policy", "create", "--policy-json", '{"type":{"id":"invalid"}}'],
+    ["policy", "update", "7", "--policy-json", '{"revision":9}'], ["policy", "update", "7", "--policy-json", "{}"],
+    ["policy", "update", "7", "--policy-json", '{"isenabled":false}'],
+    ["policy", "update", "7", "--policy-json", '{"isEnabled":"false"}'],
+    ["policy", "update", "7", "--policy-json", '{"settings":[]}'],
     ["policy", "delete", "7", "--if-rev", "3"], ["policy", "delete", "7", "--confirm-delete"],
     ["policy", "delete", "0", "--if-rev", "3", "--confirm-delete"],
   ])("rejects invalid policy input before any request: %j", async (...argv) => {
@@ -174,26 +176,60 @@ describe("TD-065 repository policy administration", () => {
 
   it("withholds secret-bearing mutation errors", async () => {
     fetchMock.mockResolvedValueOnce(json({ message: secret }, 400));
-    await expect(run(["policy", "create", "--config", JSON.stringify(configuration)]))
+    await expect(run(["policy", "create", "--policy-json", JSON.stringify(configuration)]))
       .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: "repository administration request failed; response details withheld to protect secrets" });
   });
 });
 
-it("dispatches repository creation through the real CLI with TOON output", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "ado-repo-admin-"));
+async function replayCli(argv: string[], calls: unknown[], env: NodeJS.ProcessEnv = {}) {
+  const dir = await mkdtemp(join(process.cwd(), ".ado-repo-admin-"));
   try {
     const fixture = join(dir, "replay.json");
-    await writeFile(fixture, JSON.stringify({ calls: [
-      { method: "GET", url: "https://dev.azure.com/synthetic-org/_apis/projects/SyntheticProject?api-version=7.1", status: 200, body: JSON.stringify({ id: projectId, name: "SyntheticProject" }) },
-      { method: "POST", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/git/repositories?api-version=7.1", status: 201, body: JSON.stringify(repository) },
-    ] }));
-    const result = spawnSync(process.execPath, [
+    await writeFile(fixture, JSON.stringify({ calls }));
+    return spawnSync(process.execPath, [
       "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
-      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), "repo", "create", "--name", "SyntheticRepo", ...context,
+      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv,
     ], { cwd: dir, encoding: "utf8", timeout: 10_000,
-      env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
-    expect(result.status).toBe(0);
-    expect(decode(result.stdout)).toMatchObject({ created: { id: repoId, name: "SyntheticRepo" } });
-    expect(result.stdout).not.toContain(secret);
+      env: { ...process.env, ...env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
   } finally { await rm(dir, { recursive: true, force: true }); }
+}
+
+it("dispatches repository creation through the real CLI with TOON output", async () => {
+  const result = await replayCli(["repo", "create", "--name", "SyntheticRepo", ...context], [
+    { method: "GET", url: "https://dev.azure.com/synthetic-org/_apis/projects/SyntheticProject?api-version=7.1", status: 200, body: JSON.stringify({ id: projectId, name: "SyntheticProject" }) },
+    { method: "POST", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/git/repositories?api-version=7.1", status: 201, body: JSON.stringify(repository) },
+  ]);
+  expect(result.status).toBe(0);
+  expect(decode(result.stdout)).toMatchObject({ created: { id: repoId, name: "SyntheticRepo" } });
+  expect(result.stdout).not.toContain(secret);
+});
+
+describe.each([
+  ["repo", [], profileConfig, "synthetic-org/SyntheticProject"],
+  ["repos", [], profileConfig, "synthetic-org/SyntheticProject"],
+  ["repo", ["--profile", "named"], profileConfig, "named-org/NamedProject"],
+  ["repos", ["--profile", "named"], profileConfig, "named-org/NamedProject"],
+  ["repo", ["--config", profileConfig], undefined, "synthetic-org/SyntheticProject"],
+  ["repos", ["--config", profileConfig], undefined, "synthetic-org/SyntheticProject"],
+  ["repo", ["--config", profileConfig, "--profile", "named"], undefined, "named-org/NamedProject"],
+  ["repos", ["--config", profileConfig, "--profile", "named"], undefined, "named-org/NamedProject"],
+] as const)("policy profiles: %s %j (config %s)", (command, selectors, configPath, scope) => {
+  const env = { ADO_AXI_ORG: undefined, ADO_AXI_PROJECT: undefined, ADO_AXI_CONFIG: configPath };
+
+  it("creates a policy using the saved organization and project", async () => {
+    const result = await replayCli([command, "policy", "create", "--policy-json", JSON.stringify(configuration), ...selectors], [
+      { method: "POST", url: `https://dev.azure.com/${scope}/_apis/policy/configurations?api-version=7.1`, status: 200, body: JSON.stringify(policy) },
+    ], env);
+    expect(result.status).toBe(0);
+    expect(decode(result.stdout)).toMatchObject({ created: { id: 7, revision: 3 } });
+  });
+
+  it("updates a policy using the saved organization and project", async () => {
+    const result = await replayCli([command, "policy", "update", "7", "--policy-json", '{"isEnabled":false}', ...selectors], [
+      { method: "GET", url: `https://dev.azure.com/${scope}/_apis/policy/configurations/7?api-version=7.1`, status: 200, body: JSON.stringify(policy) },
+      { method: "PUT", url: `https://dev.azure.com/${scope}/_apis/policy/configurations/7?api-version=7.1`, status: 200, body: JSON.stringify({ ...policy, isEnabled: false, revision: 4 }) },
+    ], env);
+    expect(result.status).toBe(0);
+    expect(decode(result.stdout)).toMatchObject({ updated: { id: 7, revision: 4 } });
+  });
 });
