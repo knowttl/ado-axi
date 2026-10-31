@@ -66,7 +66,7 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.
-`work-item list --limit` bounds displayed items; the count reports all WIQL matches before limiting.
+`work-item list --limit` bounds displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
 `--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 For example: `ado-axi work-item list --fields id,created,System.AssignedTo,Custom.EventSeverity`.
 Unknown aliases and API-rejected reference names produce errors.

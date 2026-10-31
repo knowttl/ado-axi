@@ -207,15 +207,12 @@ export async function listWorkItems(
   })));
 
   const help = [`Run \`ado-axi work-item get <id>\` for full detail`];
-  if (ids.length > page.length) {
-    help.push(`Showing ${page.length} of ${ids.length} matches - pass --limit ${ids.length} for all`);
-  }
   help.push('Run `ado-axi work-item update <id> --state <state>` to change state');
 
   return {
     project,
     org: profile.org,
-    count: countLine(rows.length, ids.length, "work items"),
+    count: `${rows.length} work items shown`,
     "work-items": rows,
     help,
   };

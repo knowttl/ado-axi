@@ -49,7 +49,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "list    [--state open|all|<State>] [--type <type>] [--assigned-to @me|<name>]",
     "        [--iteration @current|<path>] [--area <path>] [--tag <tag>] [--search <text>]",
     '        [--query "<raw WIQL>"] [--limit 30] [--fields id,title,state]',
-    "        --limit bounds displayed items; count reports all WIQL matches.",
+    "        --limit bounds displayed items; count reports only the number shown, not an exhaustive total.",
     "        --fields accepts id,type,title,state,assignee,created,changed or any field reference name.",
     "        Example: --fields System.AssignedTo,System.CreatedDate,Custom.EventSeverity",
     "get     <id> [--comments] [--relations] [--full]   # includes rev for --if-rev updates",

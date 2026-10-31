@@ -4,6 +4,7 @@ import { workItemCommand } from "../src/commands/workItem.js";
 import { clearCredentialCache } from "../src/lib/auth.js";
 
 const context = ["--org", "example-org", "--project", "Example Project"];
+let queryResultSize = 25;
 const fields: Record<string, unknown> = {
   "System.Id": 42,
   "System.WorkItemType": "Bug",
@@ -26,6 +27,7 @@ const fields: Record<string, unknown> = {
 };
 
 beforeEach(() => {
+  queryResultSize = 25;
   vi.stubEnv("ADO_AXI_CONFIG", "/tmp/ado-axi-work-item-reads-no-config.json");
   vi.stubEnv("ADO_EXAMPLE_ORG_PAT", "synthetic-test-token");
   vi.useFakeTimers();
@@ -33,7 +35,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
     const url = new URL(input);
     if (url.pathname.endsWith("/wiql")) {
-      const ids = Array.from({ length: 25 }, (_, i) => ({ id: 42 + i }));
+      const ids = Array.from({ length: queryResultSize }, (_, i) => ({ id: 42 + i }));
       const top = url.searchParams.get("$top");
       return Response.json({ queryType: "flat", queryResultType: "workItem", asOf: "2026-01-01T00:00:00Z",
         columns: [{ referenceName: "System.Id", name: "ID", url: "https://dev.azure.com/example-org/_apis/wit/fields/System.Id" }],
@@ -60,20 +62,29 @@ afterEach(() => {
 
 describe("work-item read regressions", () => {
   it.each([
-    [3, "3 of 25 work items", 3, "Showing 3 of 25 matches - pass --limit 25 for all"],
-    [5, "5 of 25 work items", 5, "Showing 5 of 25 matches - pass --limit 25 for all"],
-  ])("TD-059: reports the real match count with limit %i", async (limit, count, shown, hint) => {
+    [3, "3 work items shown"],
+    [5, "5 work items shown"],
+  ])("TD-059: reports the displayed count with limit %i", async (limit, count) => {
     const result = await workItemCommand(["list", "--limit", String(limit), ...context]);
     expect(result.count).toBe(count);
-    expect(result["work-items"]).toHaveLength(shown as number);
-    expect(result.help).toContain(hint);
+    expect(result["work-items"]).toHaveLength(limit as number);
   });
 
-  it("TD-059: omits the limit hint when all matches are displayed", async () => {
+  it("TD-059: reports only displayed items when the limit exceeds the returned result size", async () => {
     const result = await workItemCommand(["list", "--limit", "30", ...context]);
-    expect(result.count).toBe("25 work items");
+    expect(result.count).toBe("25 work items shown");
     expect(result["work-items"]).toHaveLength(25);
-    expect(result.help).not.toEqual(expect.arrayContaining([expect.stringContaining("Showing")]));
+  });
+
+  it.each([3, 5])("TD-059: avoids exhaustive claims for capped results with limit %i", async (limit) => {
+    queryResultSize = 20000;
+    const result = await workItemCommand(["list", "--limit", String(limit), ...context]);
+    expect(decode(encode(result))).toMatchObject({ count: `${limit} work items shown` });
+    expect(result["work-items"]).toHaveLength(limit);
+    expect(result.help).toEqual([
+      "Run `ado-axi work-item get <id>` for full detail",
+      'Run `ado-axi work-item update <id> --state <state>` to change state',
+    ]);
   });
 
   it("TD-060: fills requested reference-name columns", async () => {

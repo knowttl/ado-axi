@@ -131,7 +131,7 @@ ado-axi api _apis/wiki/wikis               # anything not covered by a command
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
 
-`work-item list --limit` bounds displayed items; the count reports all matches returned by WIQL before limiting.
+`work-item list --limit` bounds displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
 `--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 Unknown aliases and API-rejected reference names produce errors.
 `work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
