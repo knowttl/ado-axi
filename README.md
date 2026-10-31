@@ -106,6 +106,10 @@ ado-axi work-item update 4211 --state "In Progress"
 ado-axi work-item update 4211 --add-tags agent-claimed --if-rev 7   # compare-and-swap claim
 ado-axi work-item link add 4211 --pr 812                            # attach the pull request
 ado-axi work-item link list 4211
+ado-axi work-item link types
+ado-axi query run "Shared Queries/Open bugs" --limit 10
+ado-axi area list --depth 2
+ado-axi iteration list --depth 2
 ado-axi pr list --reviewer @me
 ado-axi pr comments 812 --full
 ado-axi pr thread list 812
@@ -132,6 +136,16 @@ cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=paylo
 ```
 
 `work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
+
+TD-063 adds GET-only discovery with `work-item link types`, `query run <id|path>`, `area list`, and `iteration list`.
+Saved queries accept a GUID or project-relative path such as `Shared Queries/Open bugs` and share the work-item list field aliases and reference-name handling.
+`query run --limit` defaults to 30 and bounds the server request and displayed work items, including with `--full`; counts report only items shown.
+Linked queries show distinct source and target work items.
+Area and iteration lists include the project root and tree paths, with iteration start/finish dates when configured.
+Their `--depth` defaults to 10 (0 shows only the root), and `--limit` defaults to 50.
+`--full` shows every fetched path at the requested depth; `left-out` counts fetched paths omitted by the display limit, and help identifies deeper branches.
+Link types default to 50 rows and support `--full`; all these lists accept `--fields`.
+See [Boards read commands](doc/boards-reads.md) for examples and count semantics.
 `--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 Unknown aliases and API-rejected reference names produce errors.
 `work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.

@@ -55,6 +55,10 @@ ado-axi work-item update <id> [--state <state>] [--title "..."] [--assigned-to <
                               [--set '{"Microsoft.VSTS.Common.Priority": 1}']
 ado-axi work-item comment <id> [--body "..."] [--format markdown|html]
 ado-axi work-item link list <id> [--limit 50]
+ado-axi work-item link types [--limit 50] [--full]
+ado-axi query run <id|path> [--limit 30] [--fields id,title,state]
+ado-axi area list [--depth 10] [--limit 50] [--full]
+ado-axi iteration list [--depth 10] [--limit 50] [--full]
 ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> | --pr <id>
                                  | --commit <40-hex> --repo <name> | --branch <name> --repo <name>)
                                 [--comment "..."] [--if-rev <n>]
@@ -67,6 +71,15 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.
 See [README usage](README.md#use) for work-item list counts, field selection, and full-detail output limits.
+
+TD-063 read discovery uses GET requests only.
+`query run` accepts a saved query GUID or a quoted project-relative path such as `"Shared Queries/Open bugs"`.
+It shares work-item list field handling and reports only items shown; `--full` keeps the server-side `--limit` bound.
+Linked query results show distinct source/target work items.
+Area and iteration lists show tree paths, including the project root; iterations include start/finish dates.
+`--depth 0` includes only the root, and `--full` removes the display limit while keeping the requested depth.
+`left-out` counts fetched paths omitted from output, and help identifies branches with deeper paths.
+See [Boards read commands](doc/boards-reads.md).
 
 `work-item comment` stores comments as Markdown by default; use `--format html` only when supplying raw HTML. The comments API requires `7.1-preview.4` or later for this format selection.
 `update` is idempotent — setting a field to its current value reports a no-op and exits 0.

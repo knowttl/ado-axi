@@ -4,6 +4,9 @@
   "capturedAt": "2026-09-16",
   "helpCommands": [
     "work-item",
+    "query",
+    "area",
+    "iteration",
     "pr",
     "pipeline",
     "repo",

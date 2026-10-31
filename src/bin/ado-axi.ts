@@ -66,7 +66,7 @@ function unknownCommand(command: string): string {
     error: `unknown command \`${command}\``,
     code: "VALIDATION_ERROR",
     help: [
-      "Commands: work-item | pr | pipeline | test | repo | ref | project | api | doctor | config",
+      "Commands: work-item | query | area | iteration | pr | pipeline | test | repo | ref | project | api | doctor | config",
       "Run `ado-axi --help` for the full command surface",
       "Run `ado-axi` with no arguments for the dashboard",
     ],
@@ -117,6 +117,18 @@ async function workItemHandler(args: string[]) {
   return (await import("../commands/workItem.js")).workItemCommand(args);
 }
 
+async function queryHandler(args: string[]) {
+  return (await import("../commands/query.js")).queryCommand(args);
+}
+
+async function areaHandler(args: string[]) {
+  return (await import("../commands/classification.js")).classificationCommand("area", args);
+}
+
+async function iterationHandler(args: string[]) {
+  return (await import("../commands/classification.js")).classificationCommand("iteration", args);
+}
+
 const normalized = normalizeArgv(process.argv.slice(2));
 const first = normalized[0];
 if (
@@ -143,6 +155,9 @@ await runAxiCli({
     wi: workItemHandler,
     workitem: workItemHandler,
     "work-items": workItemHandler,
+    query: queryHandler,
+    area: areaHandler,
+    iteration: iterationHandler,
     pr: prHandler,
     prs: prHandler,
     pipeline: pipelineHandler,
