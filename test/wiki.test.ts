@@ -32,7 +32,7 @@ function sent(index: number) {
 function runCli(argv: string[], replay: string, config: string, writes: string) {
   return spawnSync(process.execPath, [
     "--import", createRequire(import.meta.url).resolve("tsx"),
-    "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+    "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
     fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
     "--config", config, "wiki", ...argv, "--profile", "named",
   ], { cwd: dir, encoding: "utf8", timeout: 10_000,

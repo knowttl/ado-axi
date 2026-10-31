@@ -22,7 +22,7 @@ const relation = { rel: "AttachedFile", url: attachmentUrl, attributes: { name: 
 
 function runCli(argv: string[]) {
   return spawnSync(process.execPath, [
-    "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("./fixtures/attachment-api.mjs", import.meta.url)),
+    "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("./fixtures/attachment-api.ts", import.meta.url)),
     fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), "work-item", ...argv, ...context,
   ], { cwd: dir, encoding: "utf8", env: process.env, timeout: 10_000 });
 }

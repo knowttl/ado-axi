@@ -122,9 +122,9 @@ export const SCENARIOS = [
   },
 ];
 
-export function resolveArgv(scenario, targets) {
+export function resolveArgv(scenario: (typeof SCENARIOS)[number], targets: Record<string, unknown>) {
   return scenario.argv.map((arg) =>
-    arg.replace(/\{(\w+)\}/g, (_, key) => {
+    arg.replace(/\{(\w+)\}/g, (_: string, key: string) => {
       const value = targets[key];
       if (value === undefined) throw new Error(`missing target '${key}' for scenario ${scenario.id}`);
       return String(value);

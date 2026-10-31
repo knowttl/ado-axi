@@ -12,7 +12,11 @@
  * Scrubbing happens BEFORE anything is measured, so both sides of the benchmark
  * are derived from the same scrubbed payload.
  */
-import { countTokens } from "./tokens.mjs";
+import { countTokens } from "./tokens.ts";
+import type { RecordedCall } from "./fetch-hook.ts";
+
+type ScrubCall = Pick<RecordedCall, "url" | "contentType" | "body" | "requestBody">;
+type StringMapper = (value: string) => string;
 
 const GUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const SHA_RE = /\b[0-9a-f]{40}\b/gi;
@@ -132,7 +136,7 @@ const ID_PARENT_SEGMENTS = new Set([
  * shift is monotonic on purpose: Azure DevOps clients compare ids (for example
  * `Math.max` over pull request iterations), so ordering must survive scrubbing.
  */
-export function mapNumericId(value, offset) {
+export function mapNumericId<T extends string | number>(value: T, offset: number): T | string {
   const n = Number(value);
   if (!Number.isInteger(n) || !Number.isInteger(offset)) return value;
   return String(n + offset);
@@ -296,50 +300,50 @@ const FILLER_WORDS =
 const FIRST_NAMES = "Alex Robin Sam Casey Jordan Riley Morgan Taylor Avery Quinn Drew Jamie Noa Kim".split(" ");
 const LAST_NAMES = "Fisher Novak Keller Brandt Rivers Hayes Larsen Mercer Vance Oakley Finch Doyle".split(" ");
 
-export function createScrubber(options) {
+export function createScrubber(options: { rename?: Record<string, string>; preserve?: string[]; idOffset: number }) {
   const { rename = {}, preserve = [], idOffset } = options;
-  const shiftId = (value) => mapNumericId(value, idOffset);
+  const shiftId = <T extends string | number>(value: T) => mapNumericId(value, idOffset);
   const renames = new Map(Object.entries(rename).map(([from, to]) => [from.toLowerCase(), to]));
   const preserved = new Set([...preserve, ...Object.values(rename)].filter(Boolean));
   const lowerPreserved = new Set([...preserved].map((value) => value.toLowerCase()));
 
-  const guids = new Map();
-  const shas = new Map();
-  const emails = new Map();
-  const identities = new Map();
-  const refs = new Map();
-  const text = new Map();
+  const guids = new Map<string, string>();
+  const shas = new Map<string, string>();
+  const emails = new Map<string, string>();
+  const identities = new Map<string, string>();
+  const refs = new Map<string, string>();
+  const text = new Map<string, string>();
 
   let seq = { guid: 0, sha: 0, email: 0, identity: 0, ref: 0 };
 
-  const mapGuid = (value) => {
+  const mapGuid = (value: string) => {
     const key = value.toLowerCase();
     if (!guids.has(key)) {
       seq.guid += 1;
       guids.set(key, `00000000-0000-4000-8000-${String(seq.guid).padStart(12, "0")}`);
     }
-    return guids.get(key);
+    return guids.get(key)!;
   };
 
-  const mapSha = (value) => {
+  const mapSha = (value: string) => {
     const key = value.toLowerCase();
     if (!shas.has(key)) {
       seq.sha += 1;
       shas.set(key, `${String(seq.sha).padStart(8, "0")}`.repeat(5));
     }
-    return shas.get(key);
+    return shas.get(key)!;
   };
 
-  const mapEmail = (value) => {
+  const mapEmail = (value: string) => {
     const key = value.toLowerCase();
     if (!emails.has(key)) {
       seq.email += 1;
       emails.set(key, `user${seq.email}@example.com`);
     }
-    return emails.get(key);
+    return emails.get(key)!;
   };
 
-  const mapIdentity = (value) => {
+  const mapIdentity = (value: string) => {
     const key = value.toLowerCase();
     if (!identities.has(key)) {
       const first = FIRST_NAMES[seq.identity % FIRST_NAMES.length];
@@ -347,24 +351,24 @@ export function createScrubber(options) {
       seq.identity += 1;
       identities.set(key, `${first} ${last}`);
     }
-    return identities.get(key);
+    return identities.get(key)!;
   };
 
-  const mapRef = (value) => {
+  const mapRef = (value: string) => {
     const key = value.toLowerCase();
     if (!refs.has(key)) refs.set(key, scrubPath(value));
-    return refs.get(key);
+    return refs.get(key)!;
   };
 
   /** Token-count-preserving neutral text, stable per input. */
-  const mapText = (value) => {
+  const mapText = (value: string) => {
     if (!text.has(value)) text.set(value, neutralText(countTokens(value)));
-    return text.get(value);
+    return text.get(value)!;
   };
 
-  const isPreserved = (value) => lowerPreserved.has(value.toLowerCase());
+  const isPreserved = (value: string) => lowerPreserved.has(value.toLowerCase());
 
-  const scrubIdentityString = (value) => {
+  const scrubIdentityString = (value: string) => {
     if (!value) return value;
     // "Jane Employee <jane@contoso.com>" and "DOMAIN\\jane" both occur in fields.
     const email = EMAIL_RE.exec(value);
@@ -378,9 +382,9 @@ export function createScrubber(options) {
    * replay. Only the parts that carry live data are mapped: the org, project
    * and repository names, GUIDs, commit hashes, entity ids, git refs and
    * artifact uris. Route words, flags and constants stay verbatim; the
-   * residual check in capture.mjs is the safety net for anything else.
+   * residual check in capture.ts is the safety net for anything else.
    */
-  const scrubUrl = (value, options = {}) => {
+  const scrubUrl = (value: string, options: { strict?: boolean } = {}) => {
     const strict = options.strict === true;
     let url;
     try {
@@ -399,7 +403,7 @@ export function createScrubber(options) {
     return `${url.protocol}//${host}/${segments.join("/")}${search}`;
   };
 
-  const mapLiveData = (value) => {
+  const mapLiveData = (value: string) => {
     if (value.startsWith("vstfs:///")) return scrubArtifactUri(value, mapGuid, mapSha, mapText, shiftId);
     if (value.toLowerCase().startsWith("refs/")) return mapRef(value);
     let out = value.replace(GUID_RE, (m) => mapGuid(m));
@@ -409,7 +413,7 @@ export function createScrubber(options) {
     return out;
   };
 
-  const scrubUrlSegment = (segment, parentSegment, strict) => {
+  const scrubUrlSegment = (segment: string, parentSegment: string | undefined, strict: boolean) => {
     const decoded = safeDecode(segment);
     if (decoded === "") return decoded;
     const renamed = renames.get(decoded.toLowerCase());
@@ -427,7 +431,7 @@ export function createScrubber(options) {
     return ROUTE_WORDS.has(decoded.toLowerCase()) || BASE_ALLOWED.has(decoded) ? decoded : mapText(decoded);
   };
 
-  const scrubUrlValue = (value, key, strict) => {
+  const scrubUrlValue = (value: string, key: string, strict: boolean) => {
     const decoded = safeDecode(value);
     const renamed = renames.get(decoded.toLowerCase());
     if (renamed) return renamed;
@@ -437,7 +441,7 @@ export function createScrubber(options) {
     return NUMERIC_RE.test(decoded) || ISO_DATE_RE.test(decoded) || BASE_ALLOWED.has(decoded) ? decoded : mapText(decoded);
   };
 
-  const scrubValue = (value, key) => {
+  const scrubValue = (value: string, key?: string) => {
     if (value === "") return value;
     if (key === USER_DEFINED_MARKER) {
       if (NUMERIC_RE.test(value)) return shiftId(value);
@@ -467,7 +471,7 @@ export function createScrubber(options) {
     return mapText(value);
   };
 
-  const scrubKey = (key, parentKey) => {
+  const scrubKey = (key: string, parentKey?: string) => {
     if (parentKey && USER_DEFINED_CONTAINERS.has(parentKey)) {
       return mapText(key).split(" ")[0] ?? "field";
     }
@@ -482,16 +486,16 @@ export function createScrubber(options) {
     return `Custom.${mapText(key).split(" ")[0] ?? "field"}`;
   };
 
-  const scrubNode = (node, key) => {
+  const scrubNode = (node: unknown, key?: string): unknown => {
     if (typeof node === "number") {
       return key && (ID_KEYS.has(key) || key === USER_DEFINED_MARKER) ? Number(shiftId(node)) : node;
     }
     if (typeof node === "string") return scrubValue(node, key);
     if (Array.isArray(node)) return node.map((item) => scrubNode(item, key));
     if (node && typeof node === "object") {
-      const out = {};
+      const out: Record<string, unknown> = {};
       for (const [childKey, value] of Object.entries(node)) {
-        out[scrubKey(childKey, key)] = scrubNode(value, USER_DEFINED_CONTAINERS.has(key) ? USER_DEFINED_MARKER : childKey);
+        out[scrubKey(childKey, key)] = scrubNode(value, USER_DEFINED_CONTAINERS.has(key!) ? USER_DEFINED_MARKER : childKey);
       }
       return out;
     }
@@ -499,7 +503,7 @@ export function createScrubber(options) {
   };
 
   return {
-    scrubCall(call) {
+    scrubCall<T extends ScrubCall>(call: T) {
       const isJson = /json/i.test(call.contentType) || looksLikeJson(call.body);
       let body = call.body;
       if (isJson) {
@@ -530,7 +534,7 @@ export function createScrubber(options) {
     }),
   };
 
-  function scrubOpaque(body) {
+  function scrubOpaque(body: string) {
     if (!body) return body;
     return body
       .split("\n")
@@ -544,7 +548,7 @@ export function createScrubber(options) {
   }
 }
 
-function scrubRequestBody(body, scrubNode, scrubOpaque) {
+function scrubRequestBody(body: string, scrubNode: (node: unknown) => unknown, scrubOpaque: StringMapper) {
   try {
     return JSON.stringify(scrubNode(JSON.parse(body)));
   } catch {
@@ -553,7 +557,7 @@ function scrubRequestBody(body, scrubNode, scrubOpaque) {
 }
 
 /** `vstfs:///Git/PullRequestId/<guid>%2F<guid>%2F123` style artifact links. */
-function scrubArtifactUri(value, mapGuid, mapSha, mapText, shiftId) {
+function scrubArtifactUri(value: string, mapGuid: StringMapper, mapSha: StringMapper, mapText: StringMapper, shiftId: StringMapper) {
   return value
     .replace(GUID_RE, (m) => mapGuid(m))
     .replace(SHA_RE, (m) => mapSha(m))
@@ -561,17 +565,17 @@ function scrubArtifactUri(value, mapGuid, mapSha, mapText, shiftId) {
     .replace(/(?<=\/)[A-Za-z][A-Za-z0-9 _-]{3,}(?=\/|$)/g, (m) =>
       /^(Git|Build|Workitem|PullRequestId|Commit|Ref|CodeReview|Classification|TeamProject|Node)$/i.test(m)
         ? m
-        : mapText(m).split(" ")[0],
+        : mapText(m).split(" ")[0]!,
     );
 }
 
-function neutralHost(hostname) {
+function neutralHost(hostname: string) {
   const tld = hostname.split(".").slice(-2).join(".");
   return tld.endsWith("visualstudio.com") || tld.endsWith("azure.com") ? `service.${tld}` : `host.example.com`;
 }
 
 /** Branch and file paths: neutral segments, extension and token count preserved. */
-export function scrubPath(value) {
+export function scrubPath(value: string) {
   if (typeof value !== "string" || value.length === 0) return value;
   const target = countTokens(value);
   const leading = value.startsWith("/") ? "/" : "";
@@ -587,7 +591,7 @@ export function scrubPath(value) {
 }
 
 /** Builds neutral text with exactly `target` tokens under the default encoding. */
-export function neutralText(target) {
+export function neutralText(target: number) {
   if (target <= 0) return "";
   const words = [];
   let index = 0;
@@ -605,7 +609,7 @@ export function neutralText(target) {
 }
 
 /** Everything the scrubber itself writes into a fixture. */
-export function isSyntheticString(value) {
+export function isSyntheticString(value: unknown): boolean {
   const raw = String(value);
   // Artifact uris keep their shape: <guid>%2F<guid>%2F<shifted id>
   if (/%2f/i.test(raw)) return raw.split(/%2f/i).every((part) => part === "" || isSyntheticString(part));
@@ -622,11 +626,11 @@ export function isSyntheticString(value) {
   );
 }
 
-export function scanForSecrets(text) {
+export function scanForSecrets(text: string) {
   return SECRET_PATTERNS.filter(({ re }) => re.test(text)).map(({ name }) => name);
 }
 
-export function scanForLeaks(text, needles) {
+export function scanForLeaks(text: string, needles: string[]) {
   return needles.filter((needle) => needle && new RegExp(escapeRegExp(needle), "i").test(text));
 }
 
@@ -634,9 +638,9 @@ export function scanForLeaks(text, needles) {
  * Strings that are allowed to survive scrubbing: structural key names,
  * allow-listed enum values, and Azure DevOps route words.
  */
-export function collectAllowedSurvivors(calls) {
+export function collectAllowedSurvivors(calls: ScrubCall[]) {
   const allowed = new Set([...ROUTE_WORDS, ...BASE_ALLOWED, ...FILLER_WORDS]);
-  const addUrlVocabulary = (value) => {
+  const addUrlVocabulary = (value: string) => {
     let url;
     try {
       url = new URL(value);
@@ -651,7 +655,7 @@ export function collectAllowedSurvivors(calls) {
     }
   };
 
-  const walk = (node, key) => {
+  const walk = (node: unknown, key?: string): void => {
     if (typeof node === "string") {
       if (key && ENUM_KEYS.has(key)) for (const word of node.split(/\s+/)) allowed.add(word);
       if (/^https?:\/\//i.test(node)) addUrlVocabulary(node);
@@ -692,9 +696,9 @@ export function collectAllowedSurvivors(calls) {
  * Collects every string in a raw recording that is not provably safe. The
  * capture step asserts that none of them survive into the fixture.
  */
-export function collectSensitiveStrings(calls) {
-  const found = new Set();
-  const consider = (value) => {
+export function collectSensitiveStrings(calls: ScrubCall[]) {
+  const found = new Set<string>();
+  const consider = (value: unknown): void => {
     if (typeof value !== "string") return;
     const trimmed = value.trim();
     if (trimmed.length < 4) return;
@@ -715,7 +719,7 @@ export function collectSensitiveStrings(calls) {
       found.add(candidate);
     }
   };
-  const walk = (node) => {
+  const walk = (node: unknown): void => {
     if (typeof node === "string") return consider(node);
     if (Array.isArray(node)) return node.forEach(walk);
     if (node && typeof node === "object") {
@@ -743,16 +747,16 @@ export function collectSensitiveStrings(calls) {
   return [...found];
 }
 
-function dashGuid(value) {
+function dashGuid(value: string) {
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
 }
 
-function looksLikeJson(text) {
+function looksLikeJson(text: string) {
   const trimmed = (text ?? "").trimStart();
   return trimmed.startsWith("{") || trimmed.startsWith("[");
 }
 
-function safeDecode(value) {
+function safeDecode(value: string) {
   try {
     return decodeURIComponent(value);
   } catch {
@@ -760,6 +764,6 @@ function safeDecode(value) {
   }
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

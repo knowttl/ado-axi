@@ -1,12 +1,25 @@
 /**
  * Preload hook: records or replays Azure DevOps HTTP traffic for the benchmark.
  *
- *   node --import ./scripts/benchmark/fetch-hook.mjs dist/bin/ado-axi.js <args>
+ *   node --import ./scripts/benchmark/fetch-hook.ts dist/bin/ado-axi.js <args>
  *
  * ADO_AXI_BENCH_MODE=record  → real network, appends to $ADO_AXI_BENCH_FILE
  * ADO_AXI_BENCH_MODE=replay  → no network, serves $ADO_AXI_BENCH_FILE
  */
 import { readFileSync, writeFileSync } from "node:fs";
+
+export interface RecordedCall {
+  method: string;
+  url: string;
+  requestBody?: string;
+  status: number;
+  contentType: string;
+  body: string;
+}
+
+declare global {
+  var __adoAxiBenchReplay: { fixture: { calls: RecordedCall[] }; used: Set<string> } | undefined;
+}
 
 const mode = process.env.ADO_AXI_BENCH_MODE;
 const file = process.env.ADO_AXI_BENCH_FILE;
@@ -15,9 +28,9 @@ if (mode && file) {
   const realFetch = globalThis.fetch.bind(globalThis);
 
   if (mode === "record") {
-    const calls = [];
+    const calls: RecordedCall[] = [];
     globalThis.fetch = async (input, init = {}) => {
-      const url = typeof input === "string" ? input : input.url;
+      const url = typeof input === "string" ? input : (input as Request).url;
       const method = (init.method ?? "GET").toUpperCase();
       const response = await realFetch(input, init);
       const body = await response.clone().text();
@@ -35,16 +48,16 @@ if (mode && file) {
       writeFileSync(file, JSON.stringify({ calls }, null, 2), "utf8");
     });
   } else if (mode === "replay") {
-    const fixture = JSON.parse(readFileSync(file, "utf8"));
-    const remaining = new Map();
+    const fixture = JSON.parse(readFileSync(file, "utf8")) as { calls: RecordedCall[] };
+    const remaining = new Map<string, RecordedCall[]>();
     for (const call of fixture.calls) {
       const key = `${call.method} ${call.url}`;
       if (!remaining.has(key)) remaining.set(key, []);
-      remaining.get(key).push(call);
+      remaining.get(key)!.push(call);
     }
-    const used = new Set();
+    const used = new Set<string>();
     globalThis.fetch = async (input, init = {}) => {
-      const url = typeof input === "string" ? input : input.url;
+      const url = typeof input === "string" ? input : (input as Request).url;
       const method = (init.method ?? "GET").toUpperCase();
       const key = `${method} ${url}`;
       const queue = remaining.get(key);

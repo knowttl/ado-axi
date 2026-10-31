@@ -98,7 +98,7 @@ describe("reads with writes disabled", () => {
       { method, url, status: 200, body: JSON.stringify(body) },
     ] }));
     const result = spawnSync(process.execPath, [
-      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv, ...context,
     ], { encoding: "utf8", timeout: 10_000, input: "", env: { ...process.env, ADO_AXI_WRITES: undefined, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
     expect(result.status).toBe(0);
@@ -168,7 +168,7 @@ describe("TD-068 work-item delete", () => {
       { method: "DELETE", url: "https://dev.azure.com/synthetic-org/_apis/wit/workitems/42?destroy=false&api-version=7.1", status: 200, body: JSON.stringify({ id: 42, name: "Synthetic task", project: "SyntheticProject", deletedBy: "Synthetic User", deletedDate: "2026-10-30T00:00:00Z", resource: item }) },
     ] }));
     const result = spawnSync(process.execPath, [
-      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
       "work-item", "delete", "42", "--if-rev", "7", ...context,
     ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
@@ -242,7 +242,7 @@ describe("TD-063 work-item link remove", () => {
       { method: "PATCH", url: "https://dev.azure.com/synthetic-org/_apis/wit/workitems/42?api-version=7.1", status: 200, body: JSON.stringify({ ...item, rev: 8, relations: [relations[0], relations[2]] }) },
     ] }));
     const result = spawnSync(process.execPath, [
-      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
       "work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7", ...context,
     ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });

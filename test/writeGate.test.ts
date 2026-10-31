@@ -47,7 +47,7 @@ function run(argv: string[], writes?: string, input = "") {
     ADO_AXI_CONFIG: fileURLToPath(new URL("./fixtures/absent-config.json", import.meta.url)),
   };
   return spawnSync(process.execPath, [
-    "--import", "tsx", "--import", fileURLToPath(new URL("./fixtures/no-network.mjs", import.meta.url)),
+    "--import", "tsx", "--import", fileURLToPath(new URL("./fixtures/no-network.ts", import.meta.url)),
     fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv, ...context,
   ], { encoding: "utf8", timeout: 10_000, env, input });
 }
