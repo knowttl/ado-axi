@@ -34,6 +34,60 @@ afterEach(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
+describe("work-item link list mapping", () => {
+  const projectId = "11111111-1111-1111-1111-111111111111";
+  const repoId = "22222222-2222-2222-2222-222222222222";
+
+  it("resolves hierarchy and artifact links to readable targets", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({
+      ...item,
+      id: 4211,
+      relations: [
+        { rel: "System.LinkTypes.Hierarchy-Reverse", url: "https://dev.azure.com/synthetic-org/_apis/wit/workItems/4200" },
+        {
+          rel: "ArtifactLink",
+          url: `vstfs:///Git/PullRequestId/${projectId}%2F${repoId}%2F812`,
+          attributes: { name: "Pull Request", comment: "implements" },
+        },
+        {
+          rel: "ArtifactLink",
+          url: `vstfs:///Git/Commit/${projectId}%2F${repoId}%2F${"c".repeat(40)}`,
+          attributes: { name: "Fixed in Commit" },
+        },
+      ],
+    }));
+
+    const result = await workItemCommand(["link", "list", "4211", ...context]);
+
+    const [url, options] = fetchMock.mock.calls[0]!;
+    expect(new URL(url).pathname).toBe("/synthetic-org/_apis/wit/workitems/4211");
+    expect(new URL(url).searchParams.get("$expand")).toBe("relations");
+    expect(options.method).toBe("GET");
+    expect(result.links).toEqual([
+      { index: 0, type: "parent", target: 4200, comment: "" },
+      { index: 1, type: "pull-request", target: "812", comment: "implements" },
+      { index: 2, type: "commit", target: "cccccccc", comment: "" },
+    ]);
+  });
+
+  it("keeps the full branch name of a Git ref artifact link", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({
+      ...item,
+      id: 4211,
+      rev: 3,
+      relations: [
+        {
+          rel: "ArtifactLink",
+          url: `vstfs:///Git/Ref/${projectId}%2F${repoId}%2FGBfeature%2Flogin`,
+          attributes: { name: "Branch" },
+        },
+      ],
+    }));
+    const result = await workItemCommand(["link", "list", "4211", ...context]);
+    expect(result.links).toEqual([{ index: 0, type: "branch", target: "feature/login", comment: "" }]);
+  });
+});
+
 describe("reads with writes disabled", () => {
   it.each([
     { argv: ["api", "GET", "_apis/projects"], method: "GET", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/projects?api-version=7.1", body: { count: 0, value: [] }, expected: { count: 0, value: [] } },
