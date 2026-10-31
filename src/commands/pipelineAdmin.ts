@@ -98,27 +98,27 @@ export async function pipelineAdminCommand(argv: string[]): Promise<AuditRecord>
       : operation === "create" ? ["path"] : ["path", "confirm-delete"], `pipeline folder ${operation}`);
     assertAuditPositionals(args, 0);
     const path = operation === "list" ? flagString(args, "path") : required(args, "path");
+    const resource = `_apis/build/folders${path ? `/${encodeURIComponent(path)}` : ""}`;
     if (operation === "list") {
       const limit = auditLimit(args);
-      const result = await call<{ value?: AuditRecord[] }>({ path: "_apis/build/folders", query: { path } });
+      const result = await call<{ value?: AuditRecord[] }>({ path: resource });
       const rows = result.value ?? [];
       return auditOutput("folders", { rows: rows.slice(0, limit), total: rows.length }, args, ["path", "description"]);
     }
     if (!path!.startsWith("\\") || path === "\\") {
       throw new AxiError("--path must be a non-root absolute folder path such as \\Team", "VALIDATION_ERROR");
     }
-    const resource = `_apis/build/folders/${encodeURIComponent(path!)}`;
     if (operation === "delete") {
       if (!flagBool(args, "confirm-delete")) {
         throw new AxiError("folder deletion requires --confirm-delete", "VALIDATION_ERROR");
       }
-      const result = await call<{ value?: AuditRecord[] }>({ path: "_apis/build/folders", query: { path } });
+      const result = await call<{ value?: AuditRecord[] }>({ path: resource });
       if (!(result.value ?? []).some((folder) => folder.path === path)) {
         return { folder: "already absent (no-op)" };
       }
-      await call({ method: "DELETE", path: resource });
+      await call({ method: "DELETE", path: "_apis/build/folders", query: { path } });
     } else {
-      await call({ method: "PUT", path: resource, body: { path } });
+      await call({ method: "PUT", path: "_apis/build/folders", query: { path }, body: { path } });
     }
     return { [operation === "create" ? "created" : "deleted"]: { path } };
   }
@@ -144,6 +144,8 @@ export async function pipelineAdminCommand(argv: string[]): Promise<AuditRecord>
     return { run: { id, status: "cancelling" } };
   }
   const tag = required(args, "tag");
-  await call({ method: tagAction === "add" ? "PUT" : "DELETE", path: `${path}/tags/${encodeURIComponent(tag)}` });
+  await call(tagAction === "add"
+    ? { method: "PUT", path: `${path}/tags/${encodeURIComponent(tag)}` }
+    : { method: "PATCH", path: `${path}/tags`, body: { tagsToRemove: [tag] } });
   return { tagged: { run: id, tag, outcome: tagAction === "add" ? "added" : "removed" } };
 }

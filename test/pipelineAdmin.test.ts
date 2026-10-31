@@ -86,14 +86,27 @@ describe("pipeline definition administration (TD-065)", () => {
 
 describe("build and run administration", () => {
   it.each([
-    ["build", "add", "PUT"], ["build", "remove", "DELETE"],
-    ["runs", "add", "PUT"], ["runs", "remove", "DELETE"],
+    ["build", "add", "PUT"], ["runs", "add", "PUT"],
   ])("%s tag %s uses the build tag endpoint", async (noun, action, method) => {
     reply(["release candidate"]);
     expect(await run([noun, "tag", action, "42", "--tag", "release candidate"]))
       .toEqual({ tagged: { run: 42, tag: "release candidate", outcome: action === "add" ? "added" : "removed" } });
     expect(sent(0).method).toBe(method);
     expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/builds/42/tags/release%20candidate");
+  });
+
+  it.each([
+    ["build", "verified"], ["build", "release#1"],
+    ["runs", "release candidate"], ["runs", "release#1"],
+  ])("%s removes tag %s without replacing unrelated tags", async (noun, tag) => {
+    reply(["keep-me"]);
+    expect(await run([noun, "tag", "remove", "42", "--tag", tag]))
+      .toEqual({ tagged: { run: 42, tag, outcome: "removed" } });
+    expect(sent(0)).toMatchObject({ method: "PATCH", body: { tagsToRemove: [tag] } });
+    expect(sent(0).body).toEqual({ tagsToRemove: [tag] });
+    expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/builds/42/tags");
+    expect(sent(0).url.searchParams.get("api-version")).toBe("7.1");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("cancels an active build", async () => {
@@ -133,6 +146,20 @@ describe("pipeline folders", () => {
       .toEqual({ count: "1 of 2 folders", omitted: 1, folders: [{ path: "\\Team", description: "CI" }],
         help: ["Pass --limit 2 to include all folders; --full expands fields, not the limit"] });
     expect(sent(0).method).toBe("GET");
+    expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/folders");
+    expect(sent(0).url.searchParams.has("path")).toBe(false);
+    expect(sent(0).url.searchParams.get("api-version")).toBe("7.1-preview.2");
+  });
+
+  it.each([
+    ["\\", "%5C"], ["\\Team", "%5CTeam"], ["\\Team\\Release #1", "%5CTeam%5CRelease%20%231"],
+  ])("lists folders under %s through the route parameter", async (path, encoded) => {
+    reply({ count: 1, value: [{ path, description: "Synthetic folder" }] });
+    expect(await run(["folder", "list", "--path", path]))
+      .toEqual({ count: "1 of 1 folders", omitted: 0, folders: [{ path, description: "Synthetic folder" }] });
+    expect(sent(0).method).toBe("GET");
+    expect(sent(0).url.pathname).toBe(`/synthetic-org/SyntheticProject/_apis/build/folders/${encoded}`);
+    expect(sent(0).url.searchParams.has("path")).toBe(false);
     expect(sent(0).url.searchParams.get("api-version")).toBe("7.1-preview.2");
   });
 
@@ -141,20 +168,30 @@ describe("pipeline folders", () => {
     expect(await run(["folder", "list"])).toEqual({ count: "0 of 0 folders", omitted: 0, folders: [] });
   });
 
-  it("creates the named folder", async () => {
-    reply({ path: "\\Team" });
-    expect(await run(["folder", "create", "--path", "\\Team"]))
-      .toEqual({ created: { path: "\\Team" } });
-    expect(sent(0)).toMatchObject({ method: "PUT", body: { path: "\\Team" } });
-    expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/folders/%5CTeam");
+  it.each(["\\Team", "\\Team\\Release #1"])("creates folder %s through the query parameter", async (path) => {
+    reply({ path });
+    expect(await run(["folder", "create", "--path", path]))
+      .toEqual({ created: { path } });
+    expect(sent(0)).toMatchObject({ method: "PUT", body: { path } });
+    expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/folders");
+    expect(sent(0).url.searchParams.get("path")).toBe(path);
+    expect(sent(0).url.searchParams.get("api-version")).toBe("7.1-preview.2");
   });
 
-  it("checks folder existence before confirmed deletion", async () => {
-    reply({ count: 1, value: [{ path: "\\Team" }] }); reply(undefined, 204);
-    expect(await run(["folder", "delete", "--path", "\\Team", "--confirm-delete"]))
-      .toEqual({ deleted: { path: "\\Team" } });
+  it.each([
+    ["\\Team", "%5CTeam"], ["\\Team\\Release #1", "%5CTeam%5CRelease%20%231"],
+  ])("checks folder %s through the route before deletion through the query", async (path, encoded) => {
+    reply({ count: 1, value: [{ path }] }); reply(undefined, 204);
+    expect(await run(["folder", "delete", "--path", path, "--confirm-delete"]))
+      .toEqual({ deleted: { path } });
+    expect(sent(0).method).toBe("GET");
+    expect(sent(0).url.pathname).toBe(`/synthetic-org/SyntheticProject/_apis/build/folders/${encoded}`);
+    expect(sent(0).url.searchParams.has("path")).toBe(false);
     expect(sent(1).method).toBe("DELETE");
-    expect(sent(1).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/folders/%5CTeam");
+    expect(sent(1).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/build/folders");
+    expect(sent(1).url.searchParams.get("path")).toBe(path);
+    expect(sent(0).url.searchParams.get("api-version")).toBe("7.1-preview.2");
+    expect(sent(1).url.searchParams.get("api-version")).toBe("7.1-preview.2");
   });
 
   it("acknowledges an absent folder", async () => {
