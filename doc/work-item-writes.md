@@ -2,6 +2,38 @@
 
 Before running these examples, follow [write enablement](../README.md#behavior).
 
+## Attachments (TD-062)
+
+```sh
+ado-axi work-item attach 42 --file ./evidence.bin --comment "Test evidence" --if-rev 7
+ado-axi work-item attachment get 42 --name evidence.bin --out ./download.bin
+```
+
+`attach` requires `ADO_AXI_WRITES=1` and a readable regular local file.
+Temporary paths supplied by a host work like any other local path.
+The upload name is the path's basename.
+Uploads and downloads are limited to 25 MiB (26,214,400 bytes).
+Oversized local files are refused before any API request; downloads enforce the cap even without a Content-Length header.
+The command reads the work item's revision before upload and adds an AttachedFile relation with a JSON Patch `/rev` test.
+`--if-rev` selects an explicit expected revision and refuses a stale value before uploading.
+Without it, the revision read immediately before upload becomes the guard.
+Success reports attachment `id`, `name`, `size` in bytes, and the new work-item `rev`.
+
+Uploading and linking are separate Azure DevOps operations.
+If the relation fails, `ATTACHMENT_UNLINKED` reports the uploaded attachment's `id`, `url`, `name`, and `size` structurally, without the API response body.
+Re-read the work item and inspect its relations before retrying.
+Reuse that URL in an AttachedFile relation through `ado-axi api PATCH _apis/wit/workitems/<id> --content-type json-patch --body '<json-patch>'`, with a `test /rev` operation followed by the relation addition.
+Rerunning `attach` uploads a new copy; it does not reuse the previously uploaded attachment.
+
+`attachment get` remains available with writes disabled.
+It selects AttachedFile relations by exact name and refuses duplicate names, listing candidate attachment IDs and URLs.
+Use `work-item link list <id> --full` to inspect names and comments.
+The download defaults to `./<name>`; use `--out <path>` to select a destination.
+Names must be plain filenames.
+An existing destination is preserved unless `--force` is supplied.
+Size and API failures occur before the output is opened, preserving existing content even with `--force`.
+Success reports attachment `id`, `name`, absolute `path`, `bytes` written, and `sha256`.
+
 ## Delete or destroy a work item (TD-068)
 
 ```sh

@@ -31,6 +31,7 @@ function readVersion(): string {
 function formatError(error: unknown): { output: string; exitCode: number } {
   if (error instanceof AxiError) {
     const out: Record<string, unknown> = { error: error.message, code: error.code };
+    if (error.code === "ATTACHMENT_UNLINKED" && "attachment" in error) out.attachment = error.attachment;
     if (error.suggestions.length > 0) out.help = error.suggestions;
     return { output: `${encode(out)}\n`, exitCode: USAGE_CODES.has(error.code) ? 2 : 1 };
   }

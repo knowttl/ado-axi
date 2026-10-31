@@ -5,6 +5,7 @@ import { requireProject, type ResolvedProfile } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
 import { countLine, htmlToText, personName, pickFields, shortDate, truncate } from "../lib/format.js";
 import { readStdinIfPiped } from "../lib/stdin.js";
+import { workItemAttachment } from "./workItemAttachment.js";
 
 const LIST_FLAGS = ["state", "type", "assigned-to", "iteration", "area", "tag", "search", "query", "limit"];
 const GET_FLAGS = ["comments", "relations"];
@@ -76,6 +77,9 @@ export async function workItemCommand(argv: string[]): Promise<Record<string, un
   const rest = { ...args, positionals: args.positionals.slice(1) };
 
   switch (sub) {
+    case "attach":
+    case "attachment":
+      return workItemAttachment(sub, rest);
     case "list":
       return listWorkItems(rest);
     case "get":
@@ -94,7 +98,7 @@ export async function workItemCommand(argv: string[]): Promise<Record<string, un
       return linkWorkItem(rest);
     default:
       throw new AxiError(`unknown subcommand \`work-item ${sub}\``, "VALIDATION_ERROR", [
-        "Subcommands: list | get | create | update | delete | comment | link",
+        "Subcommands: list | get | create | update | delete | comment | link | attach | attachment",
         "Run `ado-axi work-item --help` for the full reference",
       ]);
   }

@@ -10,6 +10,7 @@ const mutations = [
   ["work-item", "delete", "42", "--if-rev", "7"],
   ["work-item", "delete", "42", "--if-rev", "7", "--destroy", "--confirm-destroy"],
   ["work-item", "comment", "42"],
+  ["work-item", "attach", "42", "--file", "synthetic-attachment.txt"],
   ["work-item", "link", "add", "42"],
   ["work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7"],
   ["work-item", "links", "remove", "42"],

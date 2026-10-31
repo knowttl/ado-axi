@@ -24,6 +24,8 @@
     "team"
   ],
   "auditCommands": [
+    ["work-item", "attach", "42", "--file", "synthetic-attachment.txt"],
+    ["work-item", "attachment", "get", "42", "--name", "synthetic-attachment.txt"],
     ["repo", "policy", "list", "--repo", "synthetic-repo"],
     ["repo", "policy", "show", "1"],
     ["security", "group", "list"],

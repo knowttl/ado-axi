@@ -102,6 +102,8 @@ ado-axi work-item delete <id> --if-rev <n> [--destroy --confirm-destroy]
 ado-axi work-item link list <id> [--limit 50]
 ado-axi work-item link remove <id> --index <n> --if-rev <n>
 ado-axi work-item link types [--limit 50] [--full]
+ado-axi work-item attach <id> --file <path> [--comment "..."] [--if-rev <n>]
+ado-axi work-item attachment get <id> --name <file> [--out <path>] [--force]
 ado-axi query run <id|path> [--limit 30] [--fields id,title,state]
 ado-axi area list [--depth 10] [--limit 50] [--full]
 ado-axi iteration list [--depth 10] [--limit 50] [--full]
@@ -109,6 +111,8 @@ ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> |
                                  | --commit <40-hex> --repo <name> | --branch <name> --repo <name>)
                                 [--comment "..."] [--if-rev <n>]
 ```
+
+See [attachment usage and recovery](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md#attachments-td-062) for file requirements, size limits, revision guards, recovery, and download behavior.
 
 `link list` resolves hierarchy links to work item ids and artifact links to pull request ids,
 short commit SHAs, and branch names. `link add` builds the `vstfs://` artifact URI for you — pass
