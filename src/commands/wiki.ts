@@ -72,15 +72,25 @@ export async function wikiCommand(argv: string[]): Promise<AuditRecord> {
     // Markdown can include credential-bearing or signed links. Mask those in output, including --full.
     const urlEntities: Record<string, string> = { amp: "&", AMP: "&", quest: "?", equals: "=", commat: "@",
       colon: ":", sol: "/", lowbar: "_", UnderBar: "_", hyphen: "-", dash: "-" };
-    const safe = original.replace(/https?:\/\/[^\s<>"]+/gi, (url) => {
-      const decoded = url.replace(/&#([xX][\da-fA-F]{1,6}|\d{1,7});|&([a-zA-Z]+);/g,
-        (entity, numeric: string | undefined, named: string | undefined) => {
-          if (named) return urlEntities[named] ?? entity;
-          const code = /^[xX]/.test(numeric!) ? parseInt(numeric!.slice(1), 16) : Number(numeric);
-          return code <= 0x7f ? String.fromCharCode(code) : entity;
-        });
-      return /\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(decoded)
-        ? `[redacted URL]${url.match(/[)\]]+$/)?.[0] ?? ""}` : url;
+    const safe = original.replace(/[^\s<>"]+/g, (candidate) => {
+      let decoded = "";
+      const sourceOffsets: number[] = [];
+      for (const part of candidate.matchAll(/&#([xX][\da-fA-F]{1,6}|\d{1,7});|&([a-zA-Z]+);|[\s\S]/g)) {
+        const [entity, numeric, named] = part;
+        let text = entity;
+        if (named && Object.hasOwn(urlEntities, named)) text = urlEntities[named]!;
+        if (numeric) {
+          const code = /^[xX]/.test(numeric) ? parseInt(numeric.slice(1), 16) : Number(numeric);
+          if (code <= 0x7f) text = String.fromCharCode(code);
+        }
+        decoded += text;
+        for (let i = 0; i < text.length; i++) sourceOffsets.push(part.index);
+      }
+      const scheme = /https?:\/\//i.exec(decoded);
+      if (!scheme || !/\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(decoded.slice(scheme.index))) {
+        return candidate;
+      }
+      return `${candidate.slice(0, sourceOffsets[scheme.index])}[redacted URL]${candidate.match(/[)\]]+$/)?.[0] ?? ""}`;
     });
     const preview = truncate(safe, flagBool(args, "full") ? Number.MAX_SAFE_INTEGER : 4000);
     return { page: { id: page!.id, path: page!.path, etag: etag ?? "", chars: original.length, content: preview.text },
