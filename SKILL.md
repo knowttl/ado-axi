@@ -252,8 +252,7 @@ previously observed version. Existing-at-the-intended-object and already-absent 
 
 ## Escape hatch
 
-Anything without a dedicated command — wikis, test plans, code search, artifacts, security —
-goes through the raw REST bridge:
+Anything without a dedicated command, such as wikis, test plans, code search, or artifacts, goes through the raw REST bridge:
 
 ```sh
 ado-axi api _apis/wiki/wikis
