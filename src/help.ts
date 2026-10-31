@@ -1,6 +1,65 @@
 export const DESCRIPTION =
   "Work with Azure DevOps work items, pull requests, and pipelines from the current profile";
 
+const AUDIT_HELP: Record<string, string[]> = {
+  repo: [
+    "ado-axi repo policy list --repo <id> [--branch <branch>] [--limit 100] [--full]",
+    "ado-axi repo policy show <id> [--limit 100] [--full]",
+    "ado-axi repo show <name|id> [--limit 100] [--full]",
+  ],
+  security: [
+    "ado-axi security group list [--scope <descriptor>] [--limit 100] [--full]",
+    "ado-axi security group show <descriptor> [--full]",
+    "ado-axi security membership list <descriptor> [--direction up|down] [--limit 100] [--full]",
+    "ado-axi security permission list --namespace <id> [--token <token>] [--subject <descriptor>] [--limit 100] [--full]",
+    "ado-axi security permission show --namespace <id> --token <token> [--subject <descriptor>] [--limit 100] [--full]",
+    "Aliases: security group membership list = security membership list.",
+  ],
+  "service-endpoint": [
+    "ado-axi service-endpoint list [--limit 100] [--full]",
+    "ado-axi service-endpoint show <id> [--full]",
+  ],
+  "variable-group": [
+    "ado-axi variable-group list [--limit 100] [--full]",
+    "ado-axi variable-group show <id> [--limit 100] [--full]",
+    "Alias: pipeline variable-group list|show.",
+  ],
+  pipeline: [
+    "ado-axi pipeline variable-group list [--limit 100] [--full]",
+    "ado-axi pipeline variable-group show <id> [--limit 100] [--full]",
+    "ado-axi pipeline variable list --pipeline <id> [--limit 100] [--full]",
+    "ado-axi pipeline show <id> [--limit 100] [--full]",
+    "ado-axi pipeline agent list --pool <id> [--limit 100] [--full]",
+    "ado-axi pipeline agent show <id> --pool <id> [--full]",
+    "ado-axi pipeline pool list [--limit 100] [--full]",
+    "ado-axi pipeline pool show <id> [--full]",
+    "ado-axi pipeline queue list [--limit 100] [--full]",
+    "ado-axi pipeline queue show <id> [--full]",
+  ],
+  agent: [
+    "ado-axi agent list --pool <id> [--limit 100] [--full]",
+    "ado-axi agent show <id> --pool <id> [--full]",
+  ],
+  pool: [
+    "ado-axi pool list [--limit 100] [--full]",
+    "ado-axi pool show <id> [--full]",
+  ],
+  queue: [
+    "ado-axi queue list [--limit 100] [--full]",
+    "ado-axi queue show <id> [--full]",
+  ],
+  user: [
+    "ado-axi user list [--limit 100] [--full]",
+    "ado-axi user show <entitlement-id> [--full]",
+  ],
+  team: [
+    "ado-axi team list [--limit 100] [--full]",
+    "ado-axi team member list --team <name|id> [--limit 100] [--full]",
+    "Alias: team list-member = team member list.",
+  ],
+  project: ["ado-axi project show [<name|id>] [--limit 100] [--full]"],
+};
+
 export const TOP_LEVEL_HELP = [
   "ado-axi                                  # dashboard: your work items, project-active PRs, recent runs",
   "ado-axi work-item list                   # open work items (WIQL under the hood)",
@@ -35,6 +94,7 @@ export const TOP_LEVEL_HELP = [
   "ado-axi repo file <path> --repo <name>   # file content at a branch or commit [--ref] [--commit]",
   "ado-axi ref list|create|delete --repo <name>",
   "ado-axi project list                     # projects, 30 most recently updated",
+  ...Object.values(AUDIT_HELP).flat(),
   "ado-axi api <path|url>                   # raw REST escape hatch for everything else",
   "ado-axi doctor                           # authentication check for every profile",
   "ado-axi config list | init | path        # profiles in ~/.ado-axi/config.json",
@@ -207,13 +267,13 @@ export const COMMAND_HELP: Record<string, string> = {
   project: ["ado-axi project list [--name <filter>] [--limit 30]"].join("\n"),
   api: [
     "ado-axi api [GET|POST|PATCH|PUT|DELETE] <path|url> [--body '<json>'] [--query 'k=v&k2=v2']",
-    "            [--api-version 7.1] [--host dev|vsrm|vssps|almsearch] [--no-project] [--raw] [--full]",
+    "            [--api-version 7.1] [--host dev|vsrm|vssps|almsearch|vsaex] [--no-project] [--raw] [--full]",
     "            [--content-type json|json-patch|merge-patch|text|<media type>]",
     "",
     "Raw Azure DevOps REST escape hatch. Paths are relative to",
     "https://dev.azure.com/<org>/<project>/ — pass --no-project for organization-level paths.",
     "Full HTTPS REST URLs on dev.azure.com, vsrm.dev.azure.com, vssps.dev.azure.com, and",
-    "almsearch.dev.azure.com select org/project/host/query without inheriting default project context.",
+    "almsearch.dev.azure.com, and vsaex.dev.azure.com select org/project/host/query without inheriting default project context.",
     "Conflicting flags or a --profile from another org are rejected before authentication.",
     "URLs with credentials, custom ports, fragments, dot segments, or duplicate query keys are rejected.",
     "Work item writes require --content-type json-patch.",
@@ -248,3 +308,17 @@ export const COMMAND_HELP: Record<string, string> = {
     '      "contoso": { "org": "contoso", "project": "Web", "auth": "pat", "patEnv": "ADO_CONTOSO_PAT" } } }',
   ].join("\n"),
 };
+
+for (const [command, lines] of Object.entries(AUDIT_HELP)) {
+  COMMAND_HELP[command] = [
+    COMMAND_HELP[command] ?? `ado-axi ${command}`,
+    "",
+    "Read-only audit commands (TD-064):",
+    ...lines,
+    "Lists default to --limit 100 and report omitted records; --full expands details without lifting limits.",
+    "All audit commands accept --limit (also for nested detail collections) and --fields a,b on lists.",
+    "Detail identifiers also accept --id <id>; membership --direction defaults to up.",
+    "Secret variables are masked; endpoint authorization, data, URLs, and agent capabilities are withheld, including --full.",
+    "API error details are withheld to protect credentials. Empty lists report 0 of 0 and omitted: 0.",
+  ].join("\n");
+}

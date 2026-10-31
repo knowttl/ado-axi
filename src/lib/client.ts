@@ -22,6 +22,8 @@ export interface RequestOptions {
   /** Return the raw response text instead of parsed JSON (logs, files). */
   raw?: boolean;
   signal?: AbortSignal;
+  /** Observe pagination headers without exposing response bodies to callers. */
+  onHeaders?: (headers: Headers) => void;
 }
 
 export function buildUrl(profile: ResolvedProfile, options: RequestOptions): string {
@@ -87,6 +89,7 @@ export async function request<T = unknown>(
   const text = await response.text();
   options.signal?.throwIfAborted();
   if (!response.ok) throw translateError(response, text, profile, url);
+  options.onHeaders?.(response.headers);
   if (/<title>[\s\S]*Azure DevOps Services \| Sign In/i.test(text)) {
     throw translateError(new Response(null, { status: 401 }), text, profile, url);
   }

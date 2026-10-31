@@ -5,13 +5,14 @@ export const ADO_HOSTS = {
   vsrm: "vsrm.dev.azure.com",
   vssps: "vssps.dev.azure.com",
   almsearch: "almsearch.dev.azure.com",
+  vsaex: "vsaex.dev.azure.com",
 } as const;
 
 export type AdoHost = keyof typeof ADO_HOSTS;
 
 function urlError(message: string): never {
   throw new AxiError(message, "VALIDATION_ERROR", [
-    "Use an HTTPS Azure DevOps REST URL on dev.azure.com, vsrm.dev.azure.com, vssps.dev.azure.com, or almsearch.dev.azure.com",
+    "Use an HTTPS Azure DevOps REST URL on dev.azure.com, vsrm.dev.azure.com, vssps.dev.azure.com, almsearch.dev.azure.com, or vsaex.dev.azure.com",
     "Or pass a relative API path with --org <org> [--project <project>] [--host <host>]",
   ]);
 }

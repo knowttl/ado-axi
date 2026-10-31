@@ -40,6 +40,48 @@ Establish org/project from the task or a project-specific profile and reuse them
 If project context is missing, use `ado-axi project list --org <org>`; ask the user if the intended
 project remains unclear. Never select a project arbitrarily, especially for mutations.
 
+## Read-only audit evidence (TD-064)
+
+Use these GET-only commands for bounded TOON audit evidence.
+Lists default to `--limit 100`, report `count` and `omitted`, and accept `--fields a,b`.
+`--full` expands fields while preserving list limits and masking.
+
+```sh
+ado-axi repo policy list --repo <repository-id> [--branch <branch>]
+ado-axi repo policy show <policy-id>
+ado-axi security group list [--scope <descriptor>]
+ado-axi security group show <descriptor>
+ado-axi security membership list <descriptor> [--direction up|down]
+ado-axi security permission list --namespace <namespace-id> [--token <resource-token>] [--subject <descriptor>]
+ado-axi security permission show --namespace <namespace-id> --token <resource-token> [--subject <descriptor>]
+ado-axi service-endpoint list
+ado-axi service-endpoint show <endpoint-id> --full
+ado-axi pipeline variable-group list
+ado-axi pipeline variable-group show <group-id> --full
+ado-axi pipeline variable list --pipeline <definition-id>
+ado-axi pipeline show <definition-id> --full
+ado-axi pipeline agent list --pool <pool-id>
+ado-axi pipeline agent show <agent-id> --pool <pool-id>
+ado-axi pipeline pool list
+ado-axi pipeline pool show <pool-id>
+ado-axi pipeline queue list
+ado-axi pipeline queue show <queue-id>
+ado-axi user list
+ado-axi user show <entitlement-id>
+ado-axi team list
+ado-axi team member list --team <team-id>
+ado-axi project show [<project-name-or-id>]
+ado-axi repo show <repository-name-or-id>
+```
+
+`variable-group`, `agent`, `pool`, and `queue` also work as top-level commands.
+`security group membership list` aliases `security membership list`; `team list-member` aliases `team member list`.
+Secret variable values show `***` even under `--full` or `--fields value`.
+Service endpoint authorization, data, and URLs are withheld because they may embed credentials.
+Agent capabilities and API error details are withheld for the same reason.
+Lists count all server pages before returning, so small display limits can still require multiple GET requests.
+See [audit command reference](docs/AUDIT_READS.md).
+
 ## Work items
 
 ```sh
@@ -210,8 +252,7 @@ previously observed version. Existing-at-the-intended-object and already-absent 
 
 ## Escape hatch
 
-Anything without a dedicated command — wikis, test plans, code search, artifacts, security —
-goes through the raw REST bridge:
+Anything without a dedicated command, such as wikis, test plans, code search, or artifacts, goes through the raw REST bridge:
 
 ```sh
 ado-axi api _apis/wiki/wikis
@@ -224,9 +265,9 @@ ado-axi api PATCH _apis/wit/workitems/4211 --content-type json-patch \
   --body '[{"op":"test","path":"/rev","value":7},{"op":"add","path":"/fields/System.State","value":"Active"}]'
 ```
 
-Relative paths use `https://dev.azure.com/<org>/<project>/`; `--host` selects
-`dev` (default), `vsrm`, `vssps`, or `almsearch`. Full HTTPS REST URLs on those four hosts also
-work: URL org/project/host/query replace default context and use matching profile authentication.
+Relative paths use `https://dev.azure.com/<org>/<project>/`.
+See [README behavior](README.md#behavior) for supported REST hosts and `--host` values.
+Full HTTPS REST URLs supply org/project/host/query, replace default context, and use matching profile authentication.
 Conflicting flags or a `--profile` from another org are rejected; do not override URL context.
 Quote URLs with query parameters. When `--body` is omitted and stdin is piped,
 stdin is sent unchanged as the request body. `--content-type` accepts the shorthands

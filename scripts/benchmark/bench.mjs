@@ -26,6 +26,12 @@ if (!existsSync(cli)) {
   process.exit(2);
 }
 
+if (args["surface-only"]) {
+  const surface = measureSurface(JSON.parse(readFileSync(surfacePath, "utf8")));
+  console.log(JSON.stringify({ toolSurface: surface }, null, 2));
+  process.exit(0);
+}
+
 const scratch = mkdtempSync(join(tmpdir(), "ado-axi-bench-"));
 const configPath = join(scratch, "config.json");
 writeFileSync(
@@ -180,6 +186,10 @@ function measureSurface(surfaceFile) {
     commandHelpTokens[command] = countTokens(runHelp([command, "--help"]));
   }
   const helpValues = Object.values(commandHelpTokens);
+  const auditCommandHelpTokens = {};
+  for (const argv of surfaceFile.auditCommands ?? []) {
+    auditCommandHelpTokens[argv.join(" ")] = countTokens(runHelp([...argv, "--help"]));
+  }
   return {
     source: surfaceFile.source ?? null,
     sourceVersion: surfaceFile.sourceVersion ?? null,
@@ -191,6 +201,7 @@ function measureSurface(surfaceFile) {
     skillTotalTokens: frontmatterTokens + skillBodyTokens,
     topLevelHelpTokens: helpTokens,
     commandHelpTokens,
+    auditCommandHelpTokens,
     medianCommandHelpTokens: helpValues.length > 0 ? Math.round(median(helpValues)) : 0,
     reductionVsMcp: mcpTokens > 0 ? ratio(mcpTokens, frontmatterTokens) : null,
   };
