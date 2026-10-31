@@ -141,11 +141,8 @@ ado-axi api _apis/wiki/wikis               # anything not covered by a command
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
 
-Attachments (TD-062) support local paths, including temporary files supplied by a host, with a 25 MiB upload/download cap.
-`attach` uploads binary content, then adds a revision-guarded relation and reports the attachment ID, name, size, and new work-item revision.
-If linking fails after upload, its structured error includes the uploaded ID and URL plus recovery guidance.
-`attachment get` defaults to `./<name>`, refuses ambiguous names and existing output files unless `--force` is supplied, and reports bytes written and SHA-256.
-See [attachment usage and recovery](doc/work-item-writes.md#attachments-td-062).
+Use `work-item attach` to upload and link a local file, and `work-item attachment get` to download it by name.
+See [attachment usage and recovery](doc/work-item-writes.md#attachments-td-062) for file requirements, size limits, revision guards, output fields, and overwrite behavior.
 
 `work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
 

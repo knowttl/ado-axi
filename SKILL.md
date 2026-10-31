@@ -112,12 +112,7 @@ ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> |
                                 [--comment "..."] [--if-rev <n>]
 ```
 
-Attachments (TD-062) are capped at 25 MiB for uploads and downloads.
-`attach` requires `ADO_AXI_WRITES=1` and accepts any readable local file path, including a host's temporary path.
-It tests the current revision automatically, or the supplied `--if-rev`, when adding the AttachedFile relation.
-An `ATTACHMENT_UNLINKED` error includes the uploaded attachment's ID and URL for recovery without re-uploading.
-`attachment get` is a read command, defaults to `./<name>`, refuses ambiguous names with candidate URLs, and requires `--force` to overwrite.
-Successful downloads report bytes written and SHA-256.
+See [attachment usage and recovery](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md#attachments-td-062) for file requirements, size limits, revision guards, recovery, and download behavior.
 
 `link list` resolves hierarchy links to work item ids and artifact links to pull request ids,
 short commit SHAs, and branch names. `link add` builds the `vstfs://` artifact URI for you — pass
