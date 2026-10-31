@@ -66,6 +66,7 @@ export const TOP_LEVEL_HELP = [
   "ado-axi work-item get <id>               # detail view [--comments] [--full]",
   'ado-axi work-item create --type Task --title "..."',
   "ado-axi work-item update <id> --state <state>",
+  "ado-axi work-item delete <id> --if-rev <n> # recycle bin; [--destroy --confirm-destroy] is permanent",
   'ado-axi work-item comment <id> --body "..." [--format markdown|html]',
   "ado-axi work-item link list|add|remove <id> # parent/child/related, pull request, commit, branch",
   "ado-axi work-item link types             # available relation types [--limit 50] [--full]",
@@ -108,7 +109,7 @@ export const TOP_LEVEL_HELP = [
 
 export const COMMAND_HELP: Record<string, string> = {
   "work-item": [
-    "ado-axi work-item <list|get|create|update|comment|link>",
+    "ado-axi work-item <list|get|create|update|delete|comment|link>",
     "",
     "list    [--state open|all|<State>] [--type <type>] [--assigned-to @me|<name>]",
     "        [--iteration @current|<path>] [--area <path>] [--tag <tag>] [--search <text>]",
@@ -126,6 +127,8 @@ export const COMMAND_HELP: Record<string, string> = {
     "        # when --description is omitted, piped stdin is used",
     "        [--add-tags a,b] [--remove-tags c]  # automatically revision-guarded tag changes",
     "        [--if-rev <n>]                      # compare-and-swap: fails if the item changed",
+    "delete  <id> --if-rev <n> [--destroy --confirm-destroy] # recycle bin by default; destroy is permanent",
+    "        Reads and compares rev immediately before DELETE; not atomic: another writer can change the item in that gap.",
     'comment <id> [--body "..."] [--format markdown|html]',
     "        # pipe stdin when --body is omitted; required for Markdown/multiline with `, $, !, or quotes",
     "        # Markdown by default; use --format html only for raw HTML",
@@ -135,7 +138,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "                | --commit <40-hex> --repo <name> | --branch <name> --repo <name>)",
     '          [--comment "..."] [--if-rev <n>]  # duplicate links are reported as no-ops',
     "link remove <id> --index <n> --if-rev <n> # index and rev from link list; atomic revision guard",
-    "Writes: create, update, comment, link add, link remove. These execute immediately; hosts must enable writes before exposing them.",
+    "Writes: create, update, delete (including --destroy), comment, link add, link remove. These execute immediately; hosts must enable writes before exposing them.",
     "",
     "Examples:",
     "  ado-axi work-item list --assigned-to @me --state open",
@@ -146,6 +149,8 @@ export const COMMAND_HELP: Record<string, string> = {
     "  ado-axi work-item link add 4211 --pr 812",
     "  ado-axi work-item link list 4211",
     "  ado-axi work-item link remove 4211 --index 0 --if-rev 7",
+    "  ado-axi work-item delete 4211 --if-rev 7",
+    "  ado-axi work-item delete 4211 --if-rev 7 --destroy --confirm-destroy",
     "  ado-axi work-item comment 4211 --body \"**Ready**\"",
     "  # comments use Markdown by default; pass --format html only for raw HTML",
   ].join("\n"),

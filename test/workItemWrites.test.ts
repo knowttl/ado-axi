@@ -33,6 +33,77 @@ afterEach(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
+describe("TD-068 work-item delete", () => {
+  it.each([
+    { flags: [], destroy: "false", outcome: "moved to recycle bin", response: () => Response.json({ id: 42, name: "Synthetic task", project: "SyntheticProject", deletedBy: "Synthetic User", deletedDate: "2026-10-30T00:00:00Z", resource: item }) },
+    { flags: ["--destroy", "--confirm-destroy"], destroy: "true", outcome: "permanently destroyed", response: () => new Response(null, { status: 204 }) },
+  ])("reports $outcome and sends the matching DELETE request", async ({ flags, destroy, outcome, response }) => {
+    fetchMock.mockResolvedValueOnce(Response.json(item));
+    fetchMock.mockResolvedValueOnce(response());
+    const result = await workItemCommand(["delete", "42", "--if-rev", "7", ...flags, ...context]);
+    const [readUrl, readOptions] = fetchMock.mock.calls[0]!;
+    expect(new URL(readUrl).pathname).toBe("/synthetic-org/_apis/wit/workitems/42");
+    expect(readOptions.method).toBe("GET");
+    const [url, options] = fetchMock.mock.calls[1]!;
+    expect(new URL(url).pathname).toBe("/synthetic-org/_apis/wit/workitems/42");
+    expect(new URL(url).searchParams.get("destroy")).toBe(destroy);
+    expect(options).toMatchObject({ method: "DELETE", body: undefined });
+    expect(decode(encode(result))).toEqual({ deleted: { id: 42, outcome, "checked-rev": 7 } });
+  });
+
+  it.each([[], ["--destroy", "--confirm-destroy"]])("refuses stale revisions without attempting DELETE: %j", async (...flags) => {
+    fetchMock.mockResolvedValueOnce(Response.json({ ...item, rev: 8 }));
+    await expect(workItemCommand(["delete", "42", "--if-rev", "7", ...flags, ...context]))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a server revision conflict without retrying DELETE", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json(item));
+    fetchMock.mockResolvedValueOnce(Response.json({ message: "revision conflict" }, { status: 412 }));
+    await expect(workItemCommand(["delete", "42", "--if-rev", "7", ...context]))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [],
+    ["--destroy", "--confirm-destroy"],
+    ["--if-rev", "7", "--destroy"],
+    ["--if-rev", "7", "--destroy", "--confirm-destroy=false"],
+    ["--if-rev", "0"],
+    ["--if-rev", "1.5"],
+    ["--if-rev"],
+  ])("requires a revision and explicit destruction confirmation before any API call: %j", async (...flags) => {
+    await expect(workItemCommand(["delete", "42", ...flags, ...context]))
+      .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not treat an inaccessible or absent item as a successful deletion", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ message: "Work item does not exist or is inaccessible" }, { status: 404 }));
+    await expect(workItemCommand(["delete", "42", "--if-rev", "7", ...context]))
+      .rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("prints a plain recycle-bin outcome through the actual CLI", () => {
+    const fixture = join(scratch, "replay.json");
+    writeFileSync(fixture, JSON.stringify({ calls: [
+      { method: "GET", url: "https://dev.azure.com/synthetic-org/_apis/wit/workitems/42?api-version=7.1", status: 200, body: JSON.stringify(item) },
+      { method: "DELETE", url: "https://dev.azure.com/synthetic-org/_apis/wit/workitems/42?destroy=false&api-version=7.1", status: 200, body: JSON.stringify({ id: 42, name: "Synthetic task", project: "SyntheticProject", deletedBy: "Synthetic User", deletedDate: "2026-10-30T00:00:00Z", resource: item }) },
+    ] }));
+    const result = spawnSync(process.execPath, [
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
+      "work-item", "delete", "42", "--if-rev", "7", ...context,
+    ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(decode(result.stdout)).toEqual({ deleted: { id: 42, outcome: "moved to recycle bin", "checked-rev": 7 } });
+  });
+});
+
 describe("TD-063 work-item link remove", () => {
   it("removes exactly the relation selected from link list with an atomic revision test", async () => {
     fetchMock.mockResolvedValueOnce(Response.json(item));

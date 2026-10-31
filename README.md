@@ -156,7 +156,11 @@ Unknown aliases and API-rejected reference names produce errors.
   `work-item link remove <id> --index <n> --if-rev <n>` re-reads the item and atomically tests that revision before removing exactly one relation.
   Unknown indexes and revision conflicts fail without retrying.
   See [work-item writes](doc/work-item-writes.md) for examples and host write gating.
-- **Host write gates.** Work-item writes are `create`, `update`, `comment`, `link add`, and `link remove`.
+- **Delete (TD-068).** `work-item delete <id> --if-rev <n>` moves an item to the recycle bin.
+  Add `--destroy --confirm-destroy` to permanently destroy it.
+  The command reads and compares the revision immediately before DELETE; this guard is not atomic, so another writer can change the item between the check and deletion.
+  Stale revisions fail without deleting or retrying.
+- **Host write gates.** Work-item writes are `create`, `update`, `delete` (including `--destroy`), `comment`, `link add`, and `link remove`.
   ado-axi executes writes immediately and has no local write-enable switch; hosts must keep these commands disabled unless writes are enabled.
 - **Missing flag values fail.** Value-taking flags such as `--if-rev`, `--old-object-id`, and context
   selectors require a value; a bare flag is a usage error (exit 2), not an omitted guard or selector.

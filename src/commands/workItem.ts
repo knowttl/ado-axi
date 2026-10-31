@@ -25,6 +25,7 @@ const UPDATE_FLAGS = [
   "if-rev",
 ];
 const COMMENT_FLAGS = ["body", "format"];
+const DELETE_FLAGS = ["if-rev", "destroy", "confirm-destroy"];
 const LINK_LIST_FLAGS = ["limit"];
 const LINK_ADD_FLAGS = ["parent", "child", "related", "pr", "commit", "branch", "repo", "comment", "if-rev"];
 const LINK_REMOVE_FLAGS = ["index", "if-rev"];
@@ -84,6 +85,8 @@ export async function workItemCommand(argv: string[]): Promise<Record<string, un
       return createWorkItem(rest);
     case "update":
       return updateWorkItem(rest);
+    case "delete":
+      return deleteWorkItem(rest);
     case "comment":
       return commentWorkItem(rest);
     case "link":
@@ -91,7 +94,7 @@ export async function workItemCommand(argv: string[]): Promise<Record<string, un
       return linkWorkItem(rest);
     default:
       throw new AxiError(`unknown subcommand \`work-item ${sub}\``, "VALIDATION_ERROR", [
-        "Subcommands: list | get | create | update | comment | link",
+        "Subcommands: list | get | create | update | delete | comment | link",
         "Run `ado-axi work-item --help` for the full reference",
       ]);
   }
@@ -778,6 +781,33 @@ async function listLinks(args: ReturnType<typeof parseArgs>): Promise<Record<str
       flagList(args, "fields"),
     ),
     help: [`Run \`ado-axi work-item link remove ${id} --index <index> --if-rev ${item.rev}\` to remove a relation`],
+  };
+}
+
+async function deleteWorkItem(args: ReturnType<typeof parseArgs>): Promise<Record<string, unknown>> {
+  assertKnownFlags(args, DELETE_FLAGS, "work-item delete");
+  const id = requireId(args, "work-item delete <id> --if-rev <n> [--destroy --confirm-destroy]");
+  const rev = requiredRevision(args, id);
+  if (args.positionals.length !== 1) {
+    throw new AxiError("exactly one work item id is required", "VALIDATION_ERROR");
+  }
+  const destroy = flagBool(args, "destroy");
+  if (destroy && !flagBool(args, "confirm-destroy")) {
+    throw new AxiError("permanent destruction requires --destroy --confirm-destroy and --if-rev <n>", "VALIDATION_ERROR", [
+      "Omit --destroy to move the work item to the recycle bin instead",
+    ]);
+  }
+  const profile = profileFromArgs(args);
+  const current = await request<WorkItem>(profile, { path: `_apis/wit/workitems/${id}` });
+  checkRevision(current, rev);
+  // DELETE has no atomic revision predicate. This is a preflight check, not a JSON-Patch CAS.
+  await request(profile, {
+    method: "DELETE",
+    path: `_apis/wit/workitems/${id}`,
+    query: { destroy },
+  });
+  return {
+    deleted: { id, outcome: destroy ? "permanently destroyed" : "moved to recycle bin", "checked-rev": rev },
   };
 }
 

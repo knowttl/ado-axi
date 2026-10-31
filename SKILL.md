@@ -96,6 +96,7 @@ ado-axi work-item update <id> [--state <state>] [--title "..."] [--assigned-to <
                               [--add-tags a,b] [--remove-tags c] [--if-rev <n>]
                               [--set '{"Microsoft.VSTS.Common.Priority": 1}']
 ado-axi work-item comment <id> [--body "..."] [--format markdown|html]
+ado-axi work-item delete <id> --if-rev <n> [--destroy --confirm-destroy]
 ado-axi work-item link list <id> [--limit 50]
 ado-axi work-item link remove <id> --index <n> --if-rev <n>
 ado-axi work-item link types [--limit 50] [--full]
@@ -115,7 +116,12 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 It re-reads the item, rejects stale revisions or unknown indexes, then atomically tests `/rev` and removes exactly one relation without retrying conflicts.
 See [work-item writes](doc/work-item-writes.md).
 
-Work-item writes are `create`, `update`, `comment`, `link add`, and `link remove`.
+`delete` (TD-068) moves the item to the recycle bin by default.
+Permanent destruction requires `--destroy --confirm-destroy` and `--if-rev`.
+It reads and compares the revision immediately before DELETE, refusing stale revisions without retrying.
+This guard is not atomic: another writer can change the item between the read and DELETE.
+
+Work-item writes are `create`, `update`, `delete` (including `--destroy`), `comment`, `link add`, and `link remove`.
 They execute immediately; hosts must keep them disabled unless writes are enabled.
 There is no local write-enable switch.
 

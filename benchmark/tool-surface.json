@@ -61,7 +61,9 @@
     ["repo", "show", "synthetic-repo"]
   ],
   "writeCommands": [
-    ["work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7"]
+    ["work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7"],
+    ["work-item", "delete", "42", "--if-rev", "7"],
+    ["work-item", "delete", "42", "--if-rev", "7", "--destroy", "--confirm-destroy"]
   ],
   "mcpTools": [
     {
