@@ -12,6 +12,8 @@ personal access token).
 
 Install globally for normal use with `npm install -g @knowttl/ado-axi`. If `ado-axi` is not on PATH, prefix commands with `npx -y @knowttl/ado-axi`.
 
+Before running mutations, follow [write enablement](README.md#behavior).
+
 ## Orientation
 
 Run `ado-axi` with no arguments first. It prints the active profile plus your open work items,
@@ -112,20 +114,7 @@ ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> |
 short commit SHAs, and branch names. `link add` builds the `vstfs://` artifact URI for you — pass
 the pull request id, not a URL — and treats an already-present link as a no-op.
 
-`link remove` (TD-063) uses the zero-based index and revision printed by `link list`.
-It re-reads the item, rejects stale revisions or unknown indexes, then atomically tests `/rev` and removes exactly one relation without retrying conflicts.
-See [work-item writes](doc/work-item-writes.md).
-
-`delete` (TD-068) moves the item to the recycle bin by default.
-Permanent destruction requires `--destroy --confirm-destroy` and `--if-rev`.
-It reads and compares the revision immediately before DELETE, refusing stale revisions without retrying.
-This guard is not atomic: another writer can change the item between the read and DELETE.
-
-Work-item writes are `create`, `update`, `delete` (including `--destroy`), `comment`, `link add`, and `link remove`.
-BREAKING CHANGE: writes default off; set `ADO_AXI_WRITES=1` to enable them.
-The same gate covers PR mutations, `pipeline run`, `ref create|delete`, and `config init|add` before any request or local write.
-Raw `api` methods other than GET, HEAD, and OPTIONS also require enablement, including implicit POST from a body or piped stdin.
-Disabled writes return `WRITES_DISABLED` with an enablement hint; native reads (including WIQL) and help remain available.
+See [work-item writes](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md) for `delete` and `link remove` examples, revision guards, permanent destruction confirmation, and the DELETE race window.
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.

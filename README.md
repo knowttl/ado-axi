@@ -64,9 +64,11 @@ Omit `-g` to install the skill for the current project only.
 Profiles live in `~/.ado-axi/config.json` (override with `./ado-axi.config.json` or
 `$ADO_AXI_CONFIG`):
 
+Configuration writes require [write enablement](#behavior).
+
 ```sh
-ado-axi config init --org acme --project Platform --name acme --auth az
-ado-axi config init --org contoso --project Web --name contoso --auth pat --pat-env ADO_CONTOSO_PAT
+ADO_AXI_WRITES=1 ado-axi config init --org acme --project Platform --name acme --auth az
+ADO_AXI_WRITES=1 ado-axi config init --org contoso --project Web --name contoso --auth pat --pat-env ADO_CONTOSO_PAT
 ado-axi doctor
 ```
 
@@ -94,6 +96,8 @@ ado-axi doctor
   project-specific profile. Use `ado-axi project list --org <org>` to discover projects.
 
 ## Use
+
+For the mutating examples below, first enable writes as described in [Behavior](#behavior).
 
 ```sh
 ado-axi                                   # dashboard: your work items, active project PRs, recent runs
@@ -152,14 +156,7 @@ Unknown aliases and API-rejected reference names produce errors.
   concurrently changed item. Calculated `--add-tags`/`--remove-tags` changes automatically test the
   revision read before merging, even without `--if-rev`; conflicts fail without retrying.
   `ref delete` sends the branch's current object ID as its guard.
-- **Link removal (TD-063).** `work-item link list <id>` shows zero-based relation indexes and the item revision.
-  `work-item link remove <id> --index <n> --if-rev <n>` re-reads the item and atomically tests that revision before removing exactly one relation.
-  Unknown indexes and revision conflicts fail without retrying.
-  See [work-item writes](doc/work-item-writes.md) for examples and write enablement.
-- **Delete (TD-068).** `work-item delete <id> --if-rev <n>` moves an item to the recycle bin.
-  Add `--destroy --confirm-destroy` to permanently destroy it.
-  The command reads and compares the revision immediately before DELETE; this guard is not atomic, so another writer can change the item between the check and deletion.
-  Stale revisions fail without deleting or retrying.
+- **Work-item deletion and link removal (TD-068, TD-063).** See [work-item writes](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md) for commands, revision guards, permanent destruction confirmation, and the DELETE race window.
 - **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item and PR mutations, `pipeline run`, `ref create|delete`, and `config init|add`.
   Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
   Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.

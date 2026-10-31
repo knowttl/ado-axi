@@ -1,16 +1,6 @@
 # Work-item writes
 
-Work-item mutating commands are `create`, `update`, `delete` (including `--destroy`), `comment`, `link add`, and `link remove`.
-BREAKING CHANGE: all write commands default off and require `ADO_AXI_WRITES=1`.
-Without that exact value, the CLI returns `WRITES_DISABLED` with an enablement hint before any request or local write.
-This also covers PR mutations, `pipeline run`, `ref create|delete`, and `config init|add`.
-Raw `api` methods other than GET, HEAD, and OPTIONS require enablement, including implicit POST from a body or piped stdin.
-Native reads, including WIQL queries, and help remain available without enablement.
-The examples below assume writes have been enabled explicitly.
-
-```sh
-export ADO_AXI_WRITES=1
-```
+Before running these examples, follow [write enablement](../README.md#behavior).
 
 ## Delete or destroy a work item (TD-068)
 
