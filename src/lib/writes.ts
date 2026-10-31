@@ -13,7 +13,7 @@ export function isWriteCommand(command: string, argv: string[]): boolean {
   const [action, operation] = parseArgs(argv).positionals;
   switch (command) {
     case "work-item":
-      return ["create", "update", "delete", "comment"].includes(action ?? "")
+      return ["create", "update", "delete", "comment", "attach"].includes(action ?? "")
         || (["link", "links"].includes(action ?? "") && ["add", "remove"].includes(operation ?? ""));
     case "pr":
       return ["create", "update", "complete", "abandon", "approve", "vote", "comment"].includes(action ?? "")

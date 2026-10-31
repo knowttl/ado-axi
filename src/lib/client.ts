@@ -21,6 +21,8 @@ export interface RequestOptions {
   accept?: string;
   /** Return the raw response text instead of parsed JSON (logs, files). */
   raw?: boolean;
+  /** Read binary content with a hard bound, including responses without Content-Length. */
+  binaryMaxBytes?: number;
   signal?: AbortSignal;
   /** Observe pagination headers without exposing response bodies to callers. */
   onHeaders?: (headers: Headers) => void;
@@ -86,6 +88,33 @@ export async function request<T = unknown>(
     );
   }
 
+  if (options.binaryMaxBytes !== undefined) {
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new AxiError(`attachment download failed (HTTP ${response.status})`, "API_ERROR");
+    }
+    const max = options.binaryMaxBytes;
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    const reader = response.body?.getReader();
+    try {
+      if (Number(response.headers.get("content-length")) > max) {
+        throw new AxiError(`attachment exceeds the ${max} byte limit`, "SIZE_LIMIT");
+      }
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > max) throw new AxiError(`attachment exceeds the ${max} byte limit`, "SIZE_LIMIT");
+          chunks.push(value);
+        }
+      }
+    } finally {
+      await reader?.cancel();
+    }
+    return Buffer.concat(chunks, size) as unknown as T;
+  }
   const text = await response.text();
   options.signal?.throwIfAborted();
   if (!response.ok) throw translateError(response, text, profile, url);

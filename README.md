@@ -111,6 +111,8 @@ ado-axi work-item update 4211 --add-tags agent-claimed --if-rev 7   # compare-an
 ado-axi work-item link add 4211 --pr 812                            # attach the pull request
 ado-axi work-item link list 4211
 ado-axi work-item link types
+ADO_AXI_WRITES=1 ado-axi work-item attach 4211 --file ./evidence.png --comment "Test evidence" --if-rev 7
+ado-axi work-item attachment get 4211 --name evidence.png --out ./download.png
 ado-axi query run "Shared Queries/Open bugs" --limit 10
 ado-axi area list --depth 2
 ado-axi iteration list --depth 2
@@ -138,6 +140,12 @@ ado-axi test results 98231                # failing tests of a run, with error m
 ado-axi api _apis/wiki/wikis               # anything not covered by a command
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
+
+Attachments (TD-062) support local paths, including temporary files supplied by a host, with a 25 MiB upload/download cap.
+`attach` uploads binary content, then adds a revision-guarded relation and reports the attachment ID, name, size, and new work-item revision.
+If linking fails after upload, its structured error includes the uploaded ID and URL plus recovery guidance.
+`attachment get` defaults to `./<name>`, refuses ambiguous names and existing output files unless `--force` is supplied, and reports bytes written and SHA-256.
+See [attachment usage and recovery](doc/work-item-writes.md#attachments-td-062).
 
 `work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
 
