@@ -46,14 +46,17 @@ const RELATION_LABELS: Record<string, string> = {
   Hyperlink: "hyperlink",
 };
 
-const DEFAULT_FIELDS = [
-  "System.Id",
-  "System.WorkItemType",
-  "System.Title",
-  "System.State",
-  "System.AssignedTo",
-  "System.ChangedDate",
-];
+const DEFAULT_COLUMNS = ["id", "type", "title", "state", "assignee", "changed"];
+
+const FIELD_ALIASES: Record<string, string> = {
+  id: "System.Id",
+  type: "System.WorkItemType",
+  title: "System.Title",
+  state: "System.State",
+  assignee: "System.AssignedTo",
+  created: "System.CreatedDate",
+  changed: "System.ChangedDate",
+};
 
 const CLOSED_STATES = ["Closed", "Removed", "Done", "Resolved"];
 
@@ -158,6 +161,16 @@ export async function listWorkItems(
   args: ReturnType<typeof parseArgs>,
 ): Promise<Record<string, unknown>> {
   assertKnownFlags(args, LIST_FLAGS, "work-item list");
+  const columns = flagList(args, "fields");
+  const selected = columns?.length ? columns : DEFAULT_COLUMNS;
+  const requestedFields = selected.map((name) => {
+    const reference = Object.hasOwn(FIELD_ALIASES, name) ? FIELD_ALIASES[name] : undefined;
+    if (reference) return reference;
+    if (name.includes(".")) return name;
+    throw new AxiError(`unknown field '${name}' in --fields`, "VALIDATION_ERROR", [
+      `Use aliases: ${Object.keys(FIELD_ALIASES).join(", ")}, or a field reference name such as Custom.EventSeverity`,
+    ]);
+  });
   const profile = profileFromArgs(args);
   const project = requireProject(profile, "work-item list");
   const limit = flagNumber(args, "limit") ?? 30;
@@ -167,7 +180,6 @@ export async function listWorkItems(
     method: "POST",
     path: "_apis/wit/wiql",
     project,
-    query: { $top: Math.max(limit, 1) * 4 },
     body: { query: wiql },
   });
   const ids = (result.workItems ?? []).map((w) => w.id);
@@ -184,19 +196,19 @@ export async function listWorkItems(
   }
 
   const page = ids.slice(0, limit);
-  const items = await fetchWorkItems(profile, page, DEFAULT_FIELDS);
-  const rows = items.map((item) => ({
-    id: item.id,
-    type: String(item.fields?.["System.WorkItemType"] ?? ""),
-    title: String(item.fields?.["System.Title"] ?? ""),
-    state: String(item.fields?.["System.State"] ?? ""),
-    assignee: personName(item.fields?.["System.AssignedTo"]),
-    changed: shortDate(item.fields?.["System.ChangedDate"] as string | undefined),
-  }));
+  const items = await fetchWorkItems(profile, page, [...new Set(requestedFields)]);
+  const rows = items.map((item) => Object.fromEntries(selected.map((column, index) => {
+    const reference = requestedFields[index]!;
+    const value = reference === "System.Id" ? item.id : item.fields?.[reference];
+    if (column === "created" || column === "changed") {
+      return [column, shortDate(value as string | undefined)];
+    }
+    return [column, value && typeof value === "object" ? personName(value) : value ?? ""];
+  })));
 
   const help = [`Run \`ado-axi work-item get <id>\` for full detail`];
   if (ids.length > page.length) {
-    help.push(`Showing ${page.length} of ${ids.length} matches — pass --limit ${ids.length} for all`);
+    help.push(`Showing ${page.length} of ${ids.length} matches - pass --limit ${ids.length} for all`);
   }
   help.push('Run `ado-axi work-item update <id> --state <state>` to change state');
 
@@ -204,7 +216,7 @@ export async function listWorkItems(
     project,
     org: profile.org,
     count: countLine(rows.length, ids.length, "work items"),
-    "work-items": pickFields(rows, flagList(args, "fields")),
+    "work-items": rows,
     help,
   };
 }
@@ -260,6 +272,20 @@ async function getWorkItem(args: ReturnType<typeof parseArgs>): Promise<Record<s
       description: body.text,
     },
   };
+
+  if (flagBool(args, "full")) {
+    const displayed = new Set([
+      ...Object.values(FIELD_ALIASES), "System.Reason", "System.AreaPath", "System.IterationPath", "System.Tags",
+      "System.ChangedBy", "System.CommentCount", "System.Description",
+    ]);
+    out.fields = Object.fromEntries(Object.entries(fields)
+      .filter(([reference]) => !displayed.has(reference))
+      .map(([reference, value]) => [reference,
+        typeof value === "string"
+          ? truncate(reference === "Microsoft.VSTS.TCM.ReproSteps" ? htmlToText(value) : value, 1200).text
+          : value,
+      ]));
+  }
 
   if (flagBool(args, "relations") && relations.length > 0) {
     out.links = relations.map((relation) => {
