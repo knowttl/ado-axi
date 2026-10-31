@@ -34,8 +34,6 @@
     ["pipeline", "build", "cancel", "42"],
     ["pipeline", "runs", "tag", "add", "42", "--tag", "synthetic"],
     ["pipeline", "runs", "tag", "remove", "42", "--tag", "synthetic"],
-    ["pipeline", "run", "tag", "add", "42", "--tag", "synthetic"],
-    ["pipeline", "run", "tag", "remove", "42", "--tag", "synthetic"],
     ["pipeline", "folder", "list"],
     ["pipeline", "folder", "create", "--path", "\\Synthetic"],
     ["pipeline", "folder", "delete", "--path", "\\Synthetic", "--confirm-delete"],

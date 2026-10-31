@@ -88,7 +88,6 @@ describe("build and run administration", () => {
   it.each([
     ["build", "add", "PUT"], ["build", "remove", "DELETE"],
     ["runs", "add", "PUT"], ["runs", "remove", "DELETE"],
-    ["run", "add", "PUT"], ["run", "remove", "DELETE"],
   ])("%s tag %s uses the build tag endpoint", async (noun, action, method) => {
     reply(["release candidate"]);
     expect(await run([noun, "tag", action, "42", "--tag", "release candidate"]))
@@ -101,6 +100,22 @@ describe("build and run administration", () => {
     reply({ id: 42, status: "inProgress" }); reply({ id: 42, status: "cancelling" });
     expect(await run(["build", "cancel", "42"])).toEqual({ run: { id: 42, status: "cancelling" } });
     expect(sent(1)).toMatchObject({ method: "PATCH", body: { status: "cancelling" } });
+  });
+
+  it.each(["add", "remove"])("rejects the removed singular run tag %s alias before a request", async (action) => {
+    await expect(run(["run", "tag", action, "42", "--tag", "synthetic"]))
+      .rejects.toMatchObject({ code: "UNKNOWN_FLAG" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("queues a pipeline through the singular run command", async () => {
+    reply({ id: 101, state: "inProgress" });
+    expect((await run(["run", "--pipeline", "42", "--branch", "main"])).queued)
+      .toMatchObject({ run: 101, pipeline: "42", state: "inProgress", branch: "main" });
+    expect(sent(0)).toMatchObject({ method: "POST", body: {
+      resources: { repositories: { self: { refName: "refs/heads/main" } } },
+    } });
+    expect(sent(0).url.pathname).toBe("/synthetic-org/SyntheticProject/_apis/pipelines/42/runs");
   });
 
   it.each(["completed", "cancelling"])("acknowledges %s builds without cancelling again", async (status) => {
@@ -150,6 +165,7 @@ describe("pipeline folders", () => {
   });
 
   it.each([
+    ["folder"], ["folder", "--path", "\\Team"],
     ["folder", "delete", "--path", "\\Team"], ["folder", "delete", "--path", "\\", "--confirm-delete"],
     ["folder", "list", "--limit", "0"], ["build", "tag", "add", "42"], ["build", "cancel", "0"],
   ])("rejects unsafe or incomplete input: %j", async (...argv) => {

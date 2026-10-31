@@ -31,7 +31,7 @@ Review the target before confirming either delete.
 An absent folder is a successful no-op.
 
 Build and pipeline run IDs identify the same underlying build resource for tags.
-`pipeline runs tag` and `pipeline run tag` alias `pipeline build tag`.
+`pipeline runs tag` aliases `pipeline build tag`.
 Tags use individual add/remove endpoints and preserve other tags without a read-modify-write replacement.
 Cancellation checks build status first and reports completed or cancelling builds as no-ops.
 

@@ -71,7 +71,6 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
       if (rest.positionals[0] === "tag") return pipelineAdminCommand(argv);
       return listRuns(rest);
     case "run":
-      if (rest.positionals[0] === "tag") return pipelineAdminCommand(argv);
       return runPipeline(rest);
     case "logs":
       return buildLogs(rest);

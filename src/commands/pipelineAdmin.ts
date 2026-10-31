@@ -90,8 +90,8 @@ export async function pipelineAdminCommand(argv: string[]): Promise<AuditRecord>
   }
 
   if (action === "folder") {
-    const operation = args.positionals.shift() ?? "list";
-    if (!["list", "create", "delete"].includes(operation)) {
+    const operation = args.positionals.shift();
+    if (!operation || !["list", "create", "delete"].includes(operation)) {
       throw new AxiError("Use pipeline folder list|create|delete", "VALIDATION_ERROR");
     }
     assertKnownFlags(args, operation === "list" ? ["path", "limit"]

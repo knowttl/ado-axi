@@ -235,7 +235,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "create --definition '<BuildDefinition JSON object>' # include name, repository, process, queue",
     "update <id> --definition '<changed fields JSON object>' [--if-rev <n>] # merges into fetched definition; revision CAS",
     "delete <id> --if-rev <n> --confirm-delete # revision precheck; DELETE is not atomic",
-    "build tag add|remove <run-id> --tag <tag> # aliases: runs tag, run tag",
+    "build tag add|remove <run-id> --tag <tag> # alias: runs tag",
     "build cancel <run-id> # completed/cancelling builds are a no-op",
     "folder list [--path <folder>] [--limit 100] [--full] # full expands fields, not the limit",
     "folder create --path <absolute-folder> # e.g. '\\Team'",
