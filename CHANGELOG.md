@@ -3,6 +3,13 @@
 All notable changes to ado-axi are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.1](https://github.com/knowttl/ado-axi/compare/v0.5.0...v0.5.1) (2026-10-31)
+
+
+### Features
+
+* add wiki commands with guarded page updates ([#13](https://github.com/knowttl/ado-axi/issues/13)) ([5917be4](https://github.com/knowttl/ado-axi/commit/5917be441984048ce6bdf17e6aab93fd054cd507))
+
 ## [0.5.0](https://github.com/knowttl/ado-axi/compare/v0.4.8...v0.5.0) (2026-10-31)
 
 
