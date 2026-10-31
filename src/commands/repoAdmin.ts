@@ -2,8 +2,8 @@ import { AxiError } from "axi-sdk-js";
 import { assertKnownFlags, flagBool, flagNumber, flagString, parseArgs } from "../lib/args.js";
 import { assertAuditPositionals, type AuditRecord } from "../lib/audit.js";
 import { request, type RequestOptions } from "../lib/client.js";
-import { configPath, requireProject } from "../lib/config.js";
-import { profileFromArgs } from "../lib/context.js";
+import { requireProject } from "../lib/config.js";
+import { commandHints, profileFromArgs } from "../lib/context.js";
 import { normalizeBranchName } from "./ref.js";
 
 function required(args: ReturnType<typeof parseArgs>, name: string): string {
@@ -22,14 +22,7 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
   const action = args.positionals.shift();
   const profile = profileFromArgs(args);
   const project = requireProject(profile, `repo ${action}`);
-  function followUp(command: string[]): string {
-    const selectors = [`--org=${profile.org}`, `--project=${project}`];
-    const selectedConfig = profile.configPath ?? flagString(args, "config");
-    if (selectedConfig) selectors.push(`--config=${configPath(selectedConfig)}`);
-    if (profile.configPath) selectors.push(`--profile=${profile.name}`);
-    return ["ado-axi", ...command, ...selectors].map((value) =>
-      /^[a-zA-Z0-9_./:=-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`).join(" ");
-  }
+  const followUp = commandHints(profile, args);
   // Import failures and policy settings can echo credentials. Never return raw API errors.
   async function call<T = AuditRecord>(options: RequestOptions): Promise<T> {
     try { return await request<T>(profile, { ...options, project: options.project ?? project }); } catch (error) {

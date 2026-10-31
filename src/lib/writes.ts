@@ -30,6 +30,8 @@ export function isWriteCommand(command: string, argv: string[]): boolean {
     case "repo":
       return ["create", "update", "delete", "import"].includes(action ?? "")
         || (action === "policy" && ["create", "update", "delete"].includes(operation ?? ""));
+    case "wiki":
+      return action === "page" && ["create", "update"].includes(operation ?? "");
     case "config":
       return action === "init" || action === "add";
     default:

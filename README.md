@@ -146,7 +146,10 @@ ado-axi pipeline logs 98231 --failed-only --tail 200
 ado-axi pipeline logs 98231 --tail 200
 ado-axi pipeline watch 98231 --interval 10 --timeout 1800
 ado-axi test results 98231                # failing tests of a run, with error messages
-ado-axi api _apis/wiki/wikis               # anything not covered by a command
+ado-axi wiki list --limit 20
+ado-axi wiki page get --wiki <id> --path /Home --full
+ado-axi wiki page update --wiki <id> --path /Home --file ./Home.md
+ado-axi api _apis/testplan/plans            # anything not covered by a command
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
 
@@ -179,7 +182,10 @@ Unknown aliases and API-rejected reference names produce errors.
   See [artifacts and releases](https://github.com/knowttl/ado-axi/blob/main/doc/artifacts-releases.md) for commands, deployment behavior, and the artifact upload limitation.
 - **Repository and policy administration (TD-065 slice 3 of 4).** Repository create/update/delete/import and policy create/update/delete use the same default-off write boundary.
   See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for JSON policy settings, revision behavior, import authentication, and concurrency limits.
-- **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item, PR, pipeline, repository, and policy mutations, `ref create|delete`, and `config init|add`.
+- **Wiki administration (TD-065 slice 4 of 4).** List wikis and read/create/update pages with content previews and ETag update guards.
+  Reads work with writes disabled; page create/update require `ADO_AXI_WRITES=1`.
+  See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for content files, explicit ETag checks, and page content output.
+- **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item, PR, pipeline, repository, policy, and wiki mutations, `ref create|delete`, and `config init|add`.
   Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
   Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.
   Native read commands, including WIQL queries, and help remain available without enablement.
@@ -213,6 +219,7 @@ detail lives, alongside the agent-facing guide in [SKILL.md](SKILL.md).
 Audit reads cover repository policies, security groups and permissions, service endpoints, variable groups, pipeline variables and definitions, agents, pools, queues, users, teams, projects, and repositories.
 Lists use TOON, default to `--limit 100`, and report both the total and how many records were omitted.
 `--full` expands fields without lifting collection limits or revealing secret variables, service connection credentials, or agent capabilities.
+See [audit read output rules](docs/AUDIT_READS.md) for structured URL handling and masking limits.
 
 ```sh
 ado-axi repo policy list --repo <repository-id> --limit 10

@@ -1,2 +1,2 @@
-TD-065 slice 3 of 4 adds repository create/update/delete/import and policy create/update/delete.
-See [repository administration](doc/repository-admin.md) for write enablement, profile selection, context-preserving follow-up commands, policy JSON, import authentication, and concurrency limits.
+TD-065 slice 4 of 4 adds wiki listing and page reads, creation, and guarded updates.
+See [wiki commands](doc/wiki.md) for write enablement, content output, and ETag handling, and [audit reads](docs/AUDIT_READS.md) for structured URL masking.

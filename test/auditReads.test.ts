@@ -166,6 +166,33 @@ describe("TD-064 bounded audit lists", () => {
 
 describe("TD-064 audit details", () => {
   it.each([
+    { mode: "default", flags: [] },
+    { mode: "full", flags: ["--full"] },
+  ])("strips only structured URL userinfo in $mode output", async ({ flags }) => {
+    const url = `https://user:${secret}@example.com/repo?sig=synthetic-signature#section`;
+    const clean = "https://example.com/repo?sig=synthetic-signature#section";
+    const description = `[repository](${url})`;
+    respond("/synthetic-org/SyntheticProject/_apis/git/repositories/synthetic-repo", {
+      ...repo, url, remoteUrl: url, _links: { web: { href: url } }, sources: [{ uri: url }],
+      webUrl: "https://EXAMPLE.com", malformedUrl: "not a URL", password: secret, variables, description,
+    });
+    const result = await repoCommand(["show", "synthetic-repo", ...context, ...flags]);
+    expect(result.repo).toMatchObject({ url: clean, remoteUrl: clean, _links: { web: { href: clean } },
+      sources: [{ uri: clean }], webUrl: "https://EXAMPLE.com", malformedUrl: "not a URL", password: "***",
+      variables: [{ name: "environment", value: "test", isSecret: false },
+        { name: "credential", value: "***", isSecret: true }, { name: "absentSecret", value: "***", isSecret: true }],
+      description });
+  });
+
+  it("strips structured URL userinfo before list field selection", async () => {
+    respond("/synthetic-org/SyntheticProject/_apis/git/policy/configurations", { value: [{ ...policy,
+      url: `https://user:${secret}@example.com/policy?sig=synthetic-signature`, password: secret,
+    }] });
+    expect(await repoCommand(["policy", "list", "--repo", "synthetic-repo", ...context, "--fields", "url,password"]))
+      .toMatchObject({ policies: [{ url: "https://example.com/policy?sig=synthetic-signature", password: "***" }] });
+  });
+
+  it.each([
     { name: "policy", command: repoCommand, argv: ["policy", "show", "7"], path: "/synthetic-org/SyntheticProject/_apis/policy/configurations/7", body: policy, key: "policy", expected: { id: 7, settings: policy.settings } },
     { name: "group", command: securityCommand, argv: ["group", "show", "vssgp.synthetic"], path: "/synthetic-org/_apis/graph/groups/vssgp.synthetic", body: group, key: "group", expected: group },
     { name: "permission", command: securityCommand, argv: ["permission", "show", "--namespace", "synthetic-namespace", "--token", acl.token], path: "/synthetic-org/_apis/accesscontrollists/synthetic-namespace", body: { value: [acl] }, key: "permissions", expected: [acl] },

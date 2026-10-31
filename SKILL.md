@@ -293,12 +293,23 @@ Ref creation never overwrites an existing branch. Deletion resolves the exact br
 current object ID as the Azure DevOps concurrency guard; `--old-object-id` additionally asserts a
 previously observed version. Existing-at-the-intended-object and already-absent requests are no-ops.
 
-## Escape hatch
-
-Anything without a dedicated command, such as wikis, test plans, or code search, goes through the raw REST bridge:
+## Wikis
 
 ```sh
-ado-axi api _apis/wiki/wikis
+ado-axi wiki list [--limit 100] [--full]
+ado-axi wiki page get --wiki <id|name> --path <page> [--full]
+ado-axi wiki page create --wiki <id|name> --path <page> (--content <text> | --file <path>)
+ado-axi wiki page update --wiki <id|name> --path <page> (--content <text> | --file <path>) [--if-match <etag>]
+```
+
+Wiki list and page get work with writes disabled; page create/update require `ADO_AXI_WRITES=1`.
+See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for content output, list limits, creation safety, exact ETag handling, and TD-065 delivery scope.
+
+## Escape hatch
+
+Anything without a dedicated command, such as test plans or code search, goes through the raw REST bridge:
+
+```sh
 ado-axi api _apis/testplan/plans --query 'filterActivePlans=true'
 ado-axi api POST _apis/search/codesearchresults --host almsearch --body '{"searchText":"TODO"}'
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream

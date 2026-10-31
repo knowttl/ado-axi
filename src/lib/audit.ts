@@ -87,6 +87,12 @@ export function safeAudit(value: unknown, args: ParsedArgs): unknown {
         out[key] = "***";
       } else if (key === "value" && record.isSecret === true) {
         out[key] = "***";
+      } else if (typeof child === "string" && /(?:url|uri)$|^href$/i.test(key) && URL.canParse(child)) {
+        const url = new URL(child);
+        const hasUserinfo = Boolean(url.username || url.password);
+        url.username = "";
+        url.password = "";
+        out[key] = safe(hasUserinfo ? url.toString() : child);
       } else if (key === "variables" && child && typeof child === "object") {
         const variables = Object.entries(child);
         out[key] = variables.slice(0, limit).map(([name, variable]) => ({ name, ...safe(variable) as AuditRecord }));

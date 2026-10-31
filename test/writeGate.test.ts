@@ -32,6 +32,7 @@ const mutations = [
   ["repo", "policy", "create"], ["repo", "policy", "update", "7"], ["repo", "policy", "delete", "7"],
   ["repos", "create"], ["repos", "update"], ["repos", "delete"], ["repos", "import"],
   ["repos", "policy", "create"], ["repos", "policy", "update", "7"], ["repos", "policy", "delete", "7"],
+  ["wiki", "page", "create", "--file", "/absent.md"], ["wiki", "page", "update"],
   ["ref", "create"], ["ref", "delete"], ["refs", "delete"],
   ["config", "init"], ["config", "add"],
   ["api", "POST", "_apis/example"], ["api", "PATCH", "_apis/example"],
@@ -73,7 +74,7 @@ describe("CLI write enablement", () => {
     expect(decode(result.stdout)).toMatchObject({ code: "WRITES_DISABLED" });
   });
 
-  it.each(["work-item", "pr", "pipeline", "repo", "ref", "config", "api"])("keeps %s help available", (command) => {
+  it.each(["work-item", "pr", "pipeline", "repo", "ref", "wiki", "config", "api"])("keeps %s help available", (command) => {
     const result = run([command, "--help"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("ADO_AXI_WRITES=1");

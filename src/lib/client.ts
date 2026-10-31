@@ -16,6 +16,8 @@ export interface RequestOptions {
   body?: unknown;
   apiVersion?: string;
   contentType?: string;
+  /** Apply a server-provided entity tag as the HTTP mutation precondition. */
+  ifMatch?: string;
   host?: AdoHost;
   /** Override the Accept header — build logs and file content need `text/plain`. */
   accept?: string;
@@ -63,6 +65,7 @@ export async function request<T = unknown>(
     Accept: options.accept ?? "application/json",
     "User-Agent": "ado-axi",
   };
+  if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
   let body: string | Uint8Array | undefined;
   if (options.body !== undefined) {
     headers["Content-Type"] = options.contentType ?? "application/json";
