@@ -274,12 +274,8 @@ async function getWorkItem(args: ReturnType<typeof parseArgs>): Promise<Record<s
   };
 
   if (flagBool(args, "full")) {
-    const displayed = new Set([
-      ...Object.values(FIELD_ALIASES), "System.Reason", "System.AreaPath", "System.IterationPath", "System.Tags",
-      "System.ChangedBy", "System.CommentCount", "System.Description",
-    ]);
     out.fields = Object.fromEntries(Object.entries(fields)
-      .filter(([reference]) => !displayed.has(reference))
+      .filter(([reference]) => !reference.startsWith("System."))
       .map(([reference, value]) => [reference,
         typeof value === "string"
           ? truncate(reference === "Microsoft.VSTS.TCM.ReproSteps" ? htmlToText(value) : value, 1200).text

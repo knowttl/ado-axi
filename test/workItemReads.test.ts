@@ -103,12 +103,11 @@ describe("work-item read regressions", () => {
       .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining("Custom.Unknown") });
   });
 
-  it("TD-061: includes omitted fields by reference name with bounded text in full output", async () => {
-    const result = await workItemCommand(["get", "42", "--full", ...context]);
+  it.each(["get", "view"])("TD-061: %s includes non-System fields by reference name with bounded text in full output", async (command) => {
+    const result = await workItemCommand([command, "42", "--full", ...context]);
     expect(decode(encode(result))).toMatchObject({
       "work-item": { description: "Event description" },
       fields: {
-        "System.TeamProject": "Example Project",
         "Custom.EventSeverity": "High",
         "Custom.EventType": "Service event",
         "Custom.Threshold": "Use <limit> & preserve whitespace  ",
@@ -121,6 +120,7 @@ describe("work-item read regressions", () => {
       },
     });
     expect(result.fields).not.toHaveProperty("System.Title");
+    expect(result.fields).not.toHaveProperty("System.TeamProject");
   });
 
   it("keeps additional fields out of the default detail view", async () => {

@@ -134,7 +134,7 @@ cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=paylo
 `work-item list --limit` bounds displayed items; the count reports all matches returned by WIQL before limiting.
 `--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 Unknown aliases and API-rejected reference names produce errors.
-`work-item get --full` includes the complete description plus every omitted field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
+`work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
 
 ## Behavior
 

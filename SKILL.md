@@ -70,7 +70,7 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 `--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 For example: `ado-axi work-item list --fields id,created,System.AssignedTo,Custom.EventSeverity`.
 Unknown aliases and API-rejected reference names produce errors.
-`work-item get --full` includes the complete description plus every omitted field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
+`work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
 
 `work-item comment` stores comments as Markdown by default; use `--format html` only when supplying raw HTML. The comments API requires `7.1-preview.4` or later for this format selection.
 `update` is idempotent — setting a field to its current value reports a no-op and exits 0.
