@@ -181,16 +181,22 @@ describe("TD-065 repository policy administration", () => {
   });
 });
 
-async function replayCli(argv: string[], calls: unknown[], env: NodeJS.ProcessEnv = {}) {
+async function replayCli(argv: string[] | string, calls: unknown[], env: NodeJS.ProcessEnv = {}) {
   const dir = await mkdtemp(join(process.cwd(), ".ado-repo-admin-"));
   try {
     const fixture = join(dir, "replay.json");
     await writeFile(fixture, JSON.stringify({ calls }));
-    return spawnSync(process.execPath, [
+    const cli = [
       "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
-      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv,
-    ], { cwd: dir, encoding: "utf8", timeout: 10_000,
-      env: { ...process.env, ...env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
+      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
+    ];
+    const options = { cwd: dir, encoding: "utf8" as const, timeout: 10_000,
+      env: { ...process.env, ...env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture,
+        ADO_AXI_TEST_NODE: process.execPath, ADO_AXI_TEST_TSX: cli[1], ADO_AXI_TEST_HOOK: cli[3], ADO_AXI_TEST_CLI: cli[4] } };
+    if (typeof argv === "string") {
+      return spawnSync("sh", ["-c", "alias ado-axi='\"$ADO_AXI_TEST_NODE\" --import \"$ADO_AXI_TEST_TSX\" --import \"$ADO_AXI_TEST_HOOK\" \"$ADO_AXI_TEST_CLI\"'\n" + argv], options);
+    }
+    return spawnSync(process.execPath, [...cli, ...argv], options);
   } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
@@ -202,6 +208,85 @@ it("dispatches repository creation through the real CLI with TOON output", async
   expect(result.status).toBe(0);
   expect(decode(result.stdout)).toMatchObject({ created: { id: repoId, name: "SyntheticRepo" } });
   expect(result.stdout).not.toContain(secret);
+});
+
+it("executes a follow-up hint for context selected only by flags", async () => {
+  const url = `https://dev.azure.com/synthetic-org/SyntheticProject/_apis/git/repositories/${repoId}?api-version=7.1`;
+  const mutation = await replayCli(["repo", "update", "--repo", repoId, "--disabled", "false", ...context], [
+    { method: "GET", url, status: 200, body: JSON.stringify(repository) },
+    { method: "PATCH", url, status: 200, body: JSON.stringify(repository) },
+  ]);
+  expect(mutation.status).toBe(0);
+  const output = decode(mutation.stdout) as { help: string[] };
+  const hint = /^Run `([\s\S]*)` to /.exec(output.help[0]!)![1]!;
+  const read = await replayCli(hint, [{ method: "GET", url, status: 200, body: JSON.stringify({ id: repoId }) }]);
+  expect(read.status, read.stdout + read.stderr).toBe(0);
+  expect(decode(read.stdout)).toMatchObject({ repo: { id: repoId } });
+});
+
+describe.each(["repo", "repos"])("%s explicit configuration and follow-up context", (command) => {
+  let dir: string;
+  let selectors: string[];
+  const profileName = "named ' \" $ADO_AXI_TEST_UNSET $(printf wrong) `printf wrong`";
+  const project = "Project's Team";
+  const base = `https://dev.azure.com/named-org/${encodeURIComponent(project)}/`;
+  const repoPath = `_apis/git/repositories/${repoId}`;
+  const policyPath = "_apis/policy/configurations";
+  const env = { ADO_AXI_ORG: undefined, ADO_AXI_PROJECT: undefined, ADO_AXI_CONFIG: undefined,
+    ADO_AXI_TEST_UNSET: undefined, ADO_AXI_WRITES: "1", ADO_AXI_PAT: "synthetic-placeholder" };
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(process.cwd(), ".ado-context-"));
+    const config = join(dir, "profiles ' $ADO_AXI_TEST_UNSET `printf wrong`.json");
+    await writeFile(config, JSON.stringify({ defaultProfile: "default", profiles: {
+      default: { org: "synthetic-org", project: "SyntheticProject", auth: "pat", patEnv: "ADO_AXI_PAT" },
+      [profileName]: { org: "configured-org", project: "ConfiguredProject", auth: "pat", patEnv: "ADO_AXI_PAT" },
+    } }));
+    selectors = ["--config", config, "--profile", profileName, "--org", "named-org", "--project", project];
+  });
+  afterEach(async () => { await rm(dir, { recursive: true, force: true }); });
+
+  it.each([
+    { argv: ["create", "--name", "SyntheticRepo"], calls: [
+      { method: "GET", url: `https://dev.azure.com/named-org/_apis/projects/${encodeURIComponent(project)}?api-version=7.1`, status: 200, body: JSON.stringify({ id: projectId }) },
+      { method: "POST", url: `${base}_apis/git/repositories?api-version=7.1`, status: 200, body: JSON.stringify(repository) },
+    ], result: { created: { id: repoId } }, path: repoPath, body: { id: repoId }, inspection: { repo: { id: repoId } } },
+    { argv: ["update", "--repo", repoId, "--disabled", "false"], calls: [
+      { method: "GET", url: `${base}${repoPath}?api-version=7.1`, status: 200, body: JSON.stringify(repository) },
+      { method: "PATCH", url: `${base}${repoPath}?api-version=7.1`, status: 200, body: JSON.stringify(repository) },
+    ], result: { updated: { id: repoId } }, path: repoPath, body: { id: repoId }, inspection: { repo: { id: repoId } } },
+    { argv: ["import", "--repo", repoId, "--source-url", "https://example.com/repo.git"], calls: [
+      { method: "GET", url: `${base}${repoPath}?api-version=7.1`, status: 200, body: JSON.stringify(repository) },
+      { method: "POST", url: `${base}${repoPath}/importRequests?api-version=7.1`, status: 200, body: JSON.stringify({ importRequestId: 5, status: "queued" }) },
+    ], result: { import: { id: 5 } }, path: `${repoPath}/importRequests/5`, body: { importRequestId: 5, status: "completed" }, inspection: { response: { importRequestId: 5, status: "completed" } } },
+    { argv: ["policy", "create", "--policy-json", JSON.stringify(configuration)], calls: [
+      { method: "POST", url: `${base}${policyPath}?api-version=7.1`, status: 200, body: JSON.stringify(policy) },
+    ], result: { created: { id: 7 } }, path: `${policyPath}/7`, body: { id: 7, revision: 3 }, inspection: { policy: { id: 7, revision: 3 } } },
+    { argv: ["policy", "update", "7", "--policy-json", '{"isEnabled":false}'], calls: [
+      { method: "GET", url: `${base}${policyPath}/7?api-version=7.1`, status: 200, body: JSON.stringify(policy) },
+      { method: "PUT", url: `${base}${policyPath}/7?api-version=7.1`, status: 200, body: JSON.stringify({ ...policy, revision: 4 }) },
+    ], result: { updated: { id: 7 } }, path: `${policyPath}/7`, body: { id: 7, revision: 4 }, inspection: { policy: { id: 7, revision: 4 } } },
+  ])("executes the context-bearing hint for $argv", async ({ argv, calls, result, path, body, inspection }) => {
+    const mutation = await replayCli([...selectors, command, ...argv], calls, env);
+    expect(mutation.status).toBe(0);
+    const output = decode(mutation.stdout) as { help: string[] };
+    expect(output).toMatchObject(result);
+    const hint = /^Run `([\s\S]*)` to /.exec(output.help[0]!)![1]!;
+    const read = await replayCli(hint, [
+      { method: "GET", url: `${base}${path}?api-version=7.1`, status: 200, body: JSON.stringify(body) },
+    ], env);
+    expect(read.status, read.stdout + read.stderr).toBe(0);
+    expect(decode(read.stdout)).toMatchObject(inspection);
+  });
+
+  it("deletes using an explicit profile file", async () => {
+    const result = await replayCli([...selectors, command, "delete", "--repo", repoId, "--confirm-delete"], [
+      { method: "GET", url: `${base}${repoPath}?api-version=7.1`, status: 200, body: JSON.stringify(repository) },
+      { method: "DELETE", url: `${base}${repoPath}?api-version=7.1`, status: 204, body: null },
+    ], env);
+    expect(result.status).toBe(0);
+    expect(decode(result.stdout)).toMatchObject({ deleted: { id: repoId } });
+  });
 });
 
 describe.each([

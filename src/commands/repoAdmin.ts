@@ -2,7 +2,7 @@ import { AxiError } from "axi-sdk-js";
 import { assertKnownFlags, flagBool, flagNumber, flagString, parseArgs } from "../lib/args.js";
 import { assertAuditPositionals, type AuditRecord } from "../lib/audit.js";
 import { request, type RequestOptions } from "../lib/client.js";
-import { requireProject } from "../lib/config.js";
+import { configPath, requireProject } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
 import { normalizeBranchName } from "./ref.js";
 
@@ -22,6 +22,14 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
   const action = args.positionals.shift();
   const profile = profileFromArgs(args);
   const project = requireProject(profile, `repo ${action}`);
+  function followUp(command: string[]): string {
+    const selectors = [`--org=${profile.org}`, `--project=${project}`];
+    const selectedConfig = profile.configPath ?? flagString(args, "config");
+    if (selectedConfig) selectors.push(`--config=${configPath(selectedConfig)}`);
+    if (profile.configPath) selectors.push(`--profile=${profile.name}`);
+    return ["ado-axi", ...command, ...selectors].map((value) =>
+      /^[a-zA-Z0-9_./:=-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`).join(" ");
+  }
   // Import failures and policy settings can echo credentials. Never return raw API errors.
   async function call<T = AuditRecord>(options: RequestOptions): Promise<T> {
     try { return await request<T>(profile, { ...options, project: options.project ?? project }); } catch (error) {
@@ -77,7 +85,7 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
     if (operation === "create") {
       const created = await call({ method: "POST", path, body: config });
       return { created: { id: created.id, revision: created.revision },
-        help: [`Run \`ado-axi repo policy show ${created.id}\` to inspect the configuration`] };
+        help: [`Run \`${followUp(["repo", "policy", "show", String(created.id)])}\` to inspect the configuration`] };
     }
     let current: AuditRecord;
     try { current = await call({ path: `${path}/${id}` }); } catch (error) {
@@ -95,14 +103,14 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
     }
     const updated = await call({ method: "PUT", path: `${path}/${id}`, body: { ...current, ...config, id, revision } });
     return { updated: { id, revision: updated.revision },
-      help: [`Run \`ado-axi repo policy show ${id}\` to inspect the configuration`] };
+      help: [`Run \`${followUp(["repo", "policy", "show", String(id)])}\` to inspect the configuration`] };
   }
 
   if (!["create", "update", "delete", "import"].includes(action ?? "")) {
     throw new AxiError("Use repo create|update|delete|import", "VALIDATION_ERROR");
   }
-  assertKnownFlags(args, action === "create" ? ["name"] : action === "update" ? ["repo", "name", "default-branch", "disabled"]
-    : action === "delete" ? ["repo", "confirm-delete"] : ["repo", "source-url", "service-endpoint"], `repo ${action}`);
+  assertKnownFlags(args, action === "create" ? ["config", "name"] : action === "update" ? ["config", "repo", "name", "default-branch", "disabled"]
+    : action === "delete" ? ["config", "repo", "confirm-delete"] : ["config", "repo", "source-url", "service-endpoint"], `repo ${action}`);
   assertAuditPositionals(args, 0);
   const path = "_apis/git/repositories";
   if (action === "create") {
@@ -110,7 +118,7 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
     const target = await call({ path: `_apis/projects/${encodeURIComponent(project)}`, project: "" });
     const created = await call({ method: "POST", path, body: { name, project: { id: target.id } } });
     return { created: { id: created.id, name: created.name },
-      help: [`Run \`ado-axi repo show ${created.id}\` to inspect the repository`] };
+      help: [`Run \`${followUp(["repo", "show", String(created.id)])}\` to inspect the repository`] };
   }
   const repo = required(args, "repo");
   const body: AuditRecord = {};
@@ -155,9 +163,9 @@ export async function repoAdminCommand(argv: string[]): Promise<AuditRecord> {
   if (action === "import") {
     const imported = await call({ method: "POST", path: `${resource}/importRequests`, body });
     return { import: { repo: current.id, id: imported.importRequestId, status: imported.status },
-      help: [`Run \`ado-axi api ${resource}/importRequests/${imported.importRequestId}\` to check import status`] };
+      help: [`Run \`${followUp(["api", `${resource}/importRequests/${imported.importRequestId}`])}\` to check import status`] };
   }
   const updated = await call({ method: "PATCH", path: resource, body });
   return { updated: { id: updated.id, name: updated.name, defaultBranch: updated.defaultBranch, disabled: updated.isDisabled },
-    help: [`Run \`ado-axi repo show ${current.id}\` to inspect the repository`] };
+    help: [`Run \`${followUp(["repo", "show", current.id])}\` to inspect the repository`] };
 }

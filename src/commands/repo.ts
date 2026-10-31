@@ -38,7 +38,7 @@ export async function repoCommand(argv: string[]): Promise<Record<string, unknow
       if (["create", "update", "delete"].includes(rest.positionals[0] ?? "")) return repoAdminCommand(argv);
       return policyCommand(argsToArgv(rest));
     case "show": {
-      assertKnownFlags(rest, ["id", "repo", "limit"], "repo show");
+      assertKnownFlags(rest, ["config", "id", "repo", "limit"], "repo show");
       auditLimit(rest);
       assertAuditPositionals(rest, 1);
       const profile = profileFromArgs(rest);

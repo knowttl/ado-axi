@@ -40,6 +40,21 @@ afterEach(() => {
 });
 
 describe("api URL context", () => {
+  it.each(["_apis/example/items", "https://dev.azure.com/acme/Selected%20Project/_apis/example/items"])(
+    "uses an explicit profile file for %s",
+    async (path) => {
+      const file = join(dir, "selected.json");
+      writeFileSync(file, JSON.stringify({ profiles: {
+        selected: { org: "acme", project: "Selected Project", auth: "pat", patEnv: "SELECTED_PAT" },
+      } }));
+      await apiCommand([path, "--config", file, "--profile", "selected", "--project", "Selected Project"]);
+      expect(mockFetch.mock.calls[0]?.[0]).toBe("https://dev.azure.com/acme/Selected%20Project/_apis/example/items?api-version=7.1");
+      expect(mockCredential).toHaveBeenCalledWith(expect.objectContaining({
+        org: "acme", project: "Selected Project", auth: "pat", patEnv: "SELECTED_PAT",
+      }));
+    },
+  );
+
   it.each(["dev.azure.com", "vsrm.dev.azure.com", "vssps.dev.azure.com", "almsearch.dev.azure.com"])(
     "uses URL context and matching profile auth on %s",
     async (host) => {

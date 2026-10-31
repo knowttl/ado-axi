@@ -3,6 +3,8 @@
 Repository create/update/delete/import and policy create/update/delete require `ADO_AXI_WRITES=1`.
 The shared command boundary rejects disabled mutations, including the `repos` alias, before authentication or HTTP requests.
 Existing repository and policy reads remain available with writes disabled.
+Repository mutations accept `--config <path>` for profile-file selection.
+Inspection and import-status hints preserve the selected profile file, profile, organization, and project with shell-safe quoting.
 Slice 4 adds wiki administration.
 
 ```sh
