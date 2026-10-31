@@ -24,6 +24,11 @@
     "team"
   ],
   "auditCommands": [
+    ["pipeline", "runs", "artifact", "list", "42"],
+    ["pipeline", "runs", "artifact", "download", "42", "--name", "drop", "--out", "synthetic-drop.zip"],
+    ["pipeline", "release", "list"],
+    ["pipeline", "release", "show", "12"],
+    ["pipeline", "release", "create", "--definition", "4", "--draft", "true"],
     ["work-item", "attach", "42", "--file", "synthetic-attachment.txt"],
     ["work-item", "attachment", "get", "42", "--name", "synthetic-attachment.txt"],
     ["pipeline", "create", "--definition", "{\"name\":\"Synthetic CI\"}"],

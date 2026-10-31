@@ -10,6 +10,8 @@ import { agentCommand } from "./agent.js";
 import { poolCommand } from "./pool.js";
 import { queueCommand } from "./queue.js";
 import { pipelineAdminCommand } from "./pipelineAdmin.js";
+import { pipelineArtifactCommand } from "./pipelineArtifact.js";
+import { releaseCommand } from "./release.js";
 
 const LIST_FLAGS = ["limit", "name"];
 const RUNS_FLAGS = ["pipeline", "branch", "status", "result", "requested-for", "limit"];
@@ -45,6 +47,8 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
   const rest = { ...args, positionals: args.positionals.slice(1) };
 
   switch (sub) {
+    case "release":
+      return releaseCommand(argsToArgv(rest));
     case "create":
     case "update":
     case "delete":
@@ -68,6 +72,7 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
     case "list":
       return listPipelines(rest);
     case "runs":
+      if (rest.positionals[0] === "artifact") return pipelineArtifactCommand(argsToArgv({ ...rest, positionals: rest.positionals.slice(1) }));
       if (rest.positionals[0] === "tag") return pipelineAdminCommand(argv);
       return listRuns(rest);
     case "run":
