@@ -64,7 +64,10 @@ export function assertRelativeApiPath(path: string): void {
   } catch {
     return urlError("API path contains invalid percent encoding");
   }
-  if (decoded.includes("\\") || decoded.split("/").some((part) => part === "." || part === "..")) {
+  // Build folder identifiers are absolute backslash paths in an encoded route value.
+  const buildFolder = /^_apis\/build\/folders\/%5c/i.test(path);
+  if ((decoded.includes("\\") && !buildFolder)
+    || decoded.replaceAll("\\", "/").split("/").some((part) => part === "." || part === "..")) {
     urlError("API paths must not contain backslashes or dot segments");
   }
 }

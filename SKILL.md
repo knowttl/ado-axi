@@ -212,12 +212,28 @@ paths, and paths under `/bin` or `/usr/bin`, before creating a thread.
 
 ```sh
 ado-axi pipeline list [--name <filter>]
+ado-axi pipeline create --definition '<BuildDefinition JSON object>'
+ado-axi pipeline update <id> --definition '<changed fields JSON object>' [--if-rev <n>]
+ado-axi pipeline delete <id> --if-rev <n> --confirm-delete
+ado-axi pipeline build tag add|remove <run-id> --tag <tag>
+ado-axi pipeline runs tag add|remove <run-id> --tag <tag>
+ado-axi pipeline build cancel <run-id>
+ado-axi pipeline folder list [--path <folder>] [--limit 100] [--full]
+ado-axi pipeline folder create --path '<absolute-folder>'
+ado-axi pipeline folder delete --path '<absolute-folder>' --confirm-delete
 ado-axi pipeline runs [--pipeline <id>] [--branch <branch>] [--result failed] [--limit 20]
 ado-axi pipeline run --pipeline <id> [--branch <branch>] [--variables '{"k":"v"}']
 ado-axi pipeline logs <run-id> [--log <log-id>] [--tail 120] [--full] [--failed-only]
 ado-axi pipeline timeline <run-id> [--limit 20] [--full]
 ado-axi pipeline watch <run-id> [--interval 10] [--timeout 1800]
 ```
+
+Pipeline mutations require `ADO_AXI_WRITES=1`; folder list stays read-only.
+Updates merge top-level JSON fields into the fetched definition and send its revision as an optimistic concurrency guard.
+Definition deletes require a revision precheck and confirmation; folder deletes require an existence precheck and confirmation.
+Neither DELETE has an atomic concurrency guard.
+`--full` expands folder fields without removing the row limit.
+See [pipeline administration](https://github.com/knowttl/ado-axi/blob/main/doc/pipeline-admin.md) for definition schemas, aliases, and examples (TD-065).
 
 `watch` uses seconds, refuses intervals below 2 seconds, and enforces its deadline across
 authentication, HTTP requests, and response bodies (30 minutes by default). Failed, cancelled,

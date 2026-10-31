@@ -140,6 +140,16 @@ describe("buildUrl", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("allows encoded build-folder paths while rejecting backslashes elsewhere and folder traversal", () => {
+    expect(buildUrl(profile, { path: "_apis/build/folders/%5CTeam%5CCI" })).toBe(
+      "https://dev.azure.com/example-org/_apis/build/folders/%5CTeam%5CCI?api-version=7.1",
+    );
+    expect(() => buildUrl(profile, { path: "_apis/git/repositories/%5CTeam" }))
+      .toThrow("API paths must not contain backslashes or dot segments");
+    expect(() => buildUrl(profile, { path: "_apis/build/folders/%5CTeam%5C..%5COther" }))
+      .toThrow("API paths must not contain backslashes or dot segments");
+  });
+
   it("translates HTTP 409 into a structured conflict", async () => {
     process.env.EXAMPLE_PAT = "secret";
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ message: "Ref changed" }), {

@@ -20,7 +20,10 @@ export function isWriteCommand(command: string, argv: string[]): boolean {
         || (action === "reviewer" && ["add", "remove"].includes(operation ?? ""))
         || (action === "thread" && ["resolve", "reopen", "reply"].includes(operation ?? ""));
     case "pipeline":
-      return action === "run";
+      return ["run", "create", "update", "delete"].includes(action ?? "")
+        || (action === "build" && ["tag", "cancel"].includes(operation ?? ""))
+        || (action === "runs" && operation === "tag")
+        || (action === "folder" && ["create", "delete"].includes(operation ?? ""));
     case "ref":
       return action === "create" || action === "delete";
     case "config":
