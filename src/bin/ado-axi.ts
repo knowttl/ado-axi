@@ -66,7 +66,7 @@ function unknownCommand(command: string): string {
     error: `unknown command \`${command}\``,
     code: "VALIDATION_ERROR",
     help: [
-      "Commands: work-item | query | area | iteration | pr | pipeline | test | repo | ref | project | api | doctor | config",
+      "Commands: work-item | query | area | iteration | pr | pipeline | test | repo | ref | project | security | service-endpoint | variable-group | agent | pool | queue | user | team | api | doctor | config",
       "Run `ado-axi --help` for the full command surface",
       "Run `ado-axi` with no arguments for the dashboard",
     ],
@@ -129,6 +129,38 @@ async function iterationHandler(args: string[]) {
   return (await import("../commands/classification.js")).classificationCommand("iteration", args);
 }
 
+async function securityHandler(args: string[]) {
+  return (await import("../commands/security.js")).securityCommand(args);
+}
+
+async function serviceEndpointHandler(args: string[]) {
+  return (await import("../commands/serviceEndpoint.js")).serviceEndpointCommand(args);
+}
+
+async function variableGroupHandler(args: string[]) {
+  return (await import("../commands/variableGroup.js")).variableGroupCommand(args);
+}
+
+async function agentHandler(args: string[]) {
+  return (await import("../commands/agent.js")).agentCommand(args);
+}
+
+async function poolHandler(args: string[]) {
+  return (await import("../commands/pool.js")).poolCommand(args);
+}
+
+async function queueHandler(args: string[]) {
+  return (await import("../commands/queue.js")).queueCommand(args);
+}
+
+async function userHandler(args: string[]) {
+  return (await import("../commands/user.js")).userCommand(args);
+}
+
+async function teamHandler(args: string[]) {
+  return (await import("../commands/team.js")).teamCommand(args);
+}
+
 const normalized = normalizeArgv(process.argv.slice(2));
 const first = normalized[0];
 if (
@@ -150,6 +182,14 @@ await runAxiCli({
   formatError,
   home: homeHandler,
   commands: {
+    security: securityHandler,
+    "service-endpoint": serviceEndpointHandler,
+    "variable-group": variableGroupHandler,
+    agent: agentHandler,
+    pool: poolHandler,
+    queue: queueHandler,
+    user: userHandler,
+    team: teamHandler,
     home: homeHandler,
     "work-item": workItemHandler,
     wi: workItemHandler,

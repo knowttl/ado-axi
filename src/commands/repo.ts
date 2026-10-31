@@ -5,6 +5,8 @@ import { requireProject } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
 import { countLine, pickFields, shortDate, truncate } from "../lib/format.js";
 import { normalizeRepositoryPath } from "../lib/repositoryPath.js";
+import { policyCommand } from "./policy.js";
+import { assertAuditPositionals, auditId, auditLimit, auditRequest, safeAudit } from "../lib/audit.js";
 
 const REPO_LIST_FLAGS = ["name", "limit"];
 const BRANCH_FLAGS = ["repo", "limit", "name"];
@@ -26,6 +28,19 @@ export async function repoCommand(argv: string[]): Promise<Record<string, unknow
   const rest = { ...args, positionals: args.positionals.slice(1) };
 
   switch (sub) {
+    case "policy":
+      return policyCommand(argv.slice(1));
+    case "show": {
+      assertKnownFlags(rest, ["id", "repo", "limit"], "repo show");
+      auditLimit(rest);
+      assertAuditPositionals(rest, 1);
+      const profile = profileFromArgs(rest);
+      const id = flagString(rest, "repo");
+      return { repo: safeAudit(await auditRequest(profile, {
+        path: `_apis/git/repositories/${id ? encodeURIComponent(id) : auditId(rest)}`,
+        project: requireProject(profile, "repo show"),
+      }), rest) };
+    }
     case "list":
       return listRepos(rest);
     case "branches":
@@ -223,6 +238,17 @@ async function readFile(args: ReturnType<typeof parseArgs>): Promise<Record<stri
 export async function projectCommand(argv: string[]): Promise<Record<string, unknown>> {
   const args = parseArgs(argv);
   const sub = args.positionals[0] ?? "list";
+  if (sub === "show") {
+    const rest = { ...args, positionals: args.positionals.slice(1) };
+    assertKnownFlags(rest, ["id", "limit"], "project show");
+    auditLimit(rest);
+    assertAuditPositionals(rest, 1);
+    const profile = profileFromArgs(rest);
+    const id = rest.positionals[0] ?? flagString(rest, "id") ?? requireProject(profile, "project show");
+    return { project: safeAudit(await auditRequest(profile, {
+      path: `_apis/projects/${encodeURIComponent(id)}`, query: { includeCapabilities: true },
+    }), rest) };
+  }
   if (sub !== "list") {
     throw new AxiError(`unknown subcommand \`project ${sub}\``, "VALIDATION_ERROR", [
       "Subcommands: list",

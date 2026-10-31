@@ -178,6 +178,27 @@ Unknown aliases and API-rejected reference names produce errors.
 Every command takes `--help` and answers with a concise reference; that is where per-command
 detail lives, alongside the agent-facing guide in [SKILL.md](SKILL.md).
 
+### Read-only audit evidence (TD-064)
+
+Audit reads cover repository policies, security groups and permissions, service endpoints, variable groups, pipeline variables and definitions, agents, pools, queues, users, teams, projects, and repositories.
+Lists use TOON, default to `--limit 100`, and report both the total and how many records were omitted.
+`--full` expands fields without lifting collection limits or revealing secret variables, service connection credentials, or agent capabilities.
+
+```sh
+ado-axi repo policy list --repo <repository-id> --limit 10
+ado-axi security group list
+ado-axi service-endpoint show <endpoint-id> --full
+ado-axi pipeline variable-group list --limit 10
+ado-axi pipeline variable list --pipeline <definition-id>
+ado-axi pipeline agent list --pool <pool-id>
+ado-axi user list --limit 10
+ado-axi team member list --team <team-id>
+ado-axi project show
+ado-axi repo show <repository-id>
+```
+
+See [audit command reference](docs/AUDIT_READS.md) for every list/show command, required selectors, pagination, and masking rules.
+
 ## Design
 
 Built against the ten AXI principles: TOON output, 3-4 field default schemas, truncation with

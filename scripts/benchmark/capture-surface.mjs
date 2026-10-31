@@ -9,7 +9,7 @@
  * organization name scrubbed. No Azure DevOps data is read.
  */
 import { spawn } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,7 +27,7 @@ if (!org) {
   process.exit(2);
 }
 
-const HELP_COMMANDS = ["work-item", "query", "area", "iteration", "pr", "pipeline", "repo", "ref", "test", "project", "api"];
+const HELP_COMMANDS = ["work-item", "query", "area", "iteration", "pr", "pipeline", "repo", "ref", "test", "project", "api", "security", "service-endpoint", "variable-group", "agent", "pool", "queue", "user", "team"];
 
 const child = entry
   ? spawn(process.execPath, [entry, org], { stdio: ["pipe", "pipe", "inherit"] })
@@ -116,6 +116,7 @@ try {
     sourceVersion: initialized.result?.serverInfo?.version ?? null,
     capturedAt: new Date().toISOString().slice(0, 10),
     helpCommands: HELP_COMMANDS,
+    auditCommands: JSON.parse(readFileSync(join(root, "benchmark", "tool-surface.json"), "utf8")).auditCommands ?? [],
     mcpTools: scrubbed,
   };
   writeFileSync(join(root, "benchmark", "tool-surface.json"), `${JSON.stringify(surface, null, 2)}\n`, "utf8");

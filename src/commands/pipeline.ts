@@ -4,6 +4,11 @@ import { request } from "../lib/client.js";
 import { requireProject } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
 import { countLine, personName, pickFields, shortDate, truncate } from "../lib/format.js";
+import { assertAuditPositionals, auditId, auditLimit, auditOutput, auditRequest, safeAudit, type AuditRecord } from "../lib/audit.js";
+import { variableGroupCommand } from "./variableGroup.js";
+import { agentCommand } from "./agent.js";
+import { poolCommand } from "./pool.js";
+import { queueCommand } from "./queue.js";
 
 const LIST_FLAGS = ["limit", "name"];
 const RUNS_FLAGS = ["pipeline", "branch", "status", "result", "requested-for", "limit"];
@@ -39,6 +44,20 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
   const rest = { ...args, positionals: args.positionals.slice(1) };
 
   switch (sub) {
+    case "variable-group":
+      return variableGroupCommand(argv.slice(1));
+    case "agent":
+      return agentCommand(argv.slice(1));
+    case "pool":
+      return poolCommand(argv.slice(1));
+    case "queue":
+      return queueCommand(argv.slice(1));
+    case "show":
+      return showDefinition(rest, false);
+    case "variable": {
+      if (rest.positionals.shift() !== "list") throw new AxiError("Use pipeline variable list --pipeline <id>", "VALIDATION_ERROR");
+      return showDefinition(rest, true);
+    }
     case "list":
       return listPipelines(rest);
     case "runs":
@@ -58,6 +77,24 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
         "Run `ado-axi pipeline --help` for the full reference",
       ]);
   }
+}
+
+async function showDefinition(args: ReturnType<typeof parseArgs>, variablesOnly: boolean): Promise<AuditRecord> {
+  const command = variablesOnly ? "pipeline variable list" : "pipeline show";
+  assertKnownFlags(args, ["id", "pipeline", "limit"], command);
+  const limit = auditLimit(args);
+  assertAuditPositionals(args, 1);
+  const profile = profileFromArgs(args);
+  const project = requireProject(profile, command);
+  const id = flagString(args, "pipeline");
+  const definition = await auditRequest<AuditRecord>(profile, {
+    path: `_apis/build/definitions/${id ? encodeURIComponent(id) : auditId(args)}`, project,
+  });
+  if (!variablesOnly) return { pipeline: safeAudit(definition, args) };
+  const variables = Object.entries((definition.variables ?? {}) as Record<string, AuditRecord>);
+  return auditOutput("variables", {
+    rows: variables.slice(0, limit).map(([name, value]) => ({ name, ...value })), total: variables.length,
+  }, args, ["name", "value", "isSecret", "allowOverride"]);
 }
 
 async function listPipelines(args: ReturnType<typeof parseArgs>): Promise<Record<string, unknown>> {
