@@ -1,0 +1,69 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+      - name: Enable pnpm
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile --ignore-scripts
+      - run: corepack pnpm run build
+      # These checks belong only to release publication, never pull-request CI.
+      - run: corepack pnpm test
+      - name: Pack verified release
+        id: pack
+        run: |
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" |
+            node --input-type=module -e '
+              import { appendFileSync } from "node:fs";
+              let output = "";
+              for await (const chunk of process.stdin) output += chunk;
+              const [{ filename }] = JSON.parse(output);
+              appendFileSync(process.env.GITHUB_OUTPUT, `filename=${filename}\n`);
+            '
+      - name: Enable npm OIDC trusted publishing
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const path = process.env.NPM_CONFIG_USERCONFIG;
+            writeFileSync(path, readFileSync(path, "utf8").split("\n").filter(line => !line.includes(":_authToken=")).join("\n"));
+          '
+      - name: Publish verified tarball with provenance
+        env:
+          TARBALL_FILENAME: ${{ steps.pack.outputs.filename }}
+        run: npm publish "$RUNNER_TEMP/$TARBALL_FILENAME" --access public --provenance
