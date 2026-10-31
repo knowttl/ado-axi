@@ -187,7 +187,7 @@ function measureSurface(surfaceFile) {
   }
   const helpValues = Object.values(commandHelpTokens);
   const auditCommandHelpTokens = {};
-  for (const argv of surfaceFile.auditCommands ?? []) {
+  for (const argv of [...(surfaceFile.auditCommands ?? []), ...(surfaceFile.writeCommands ?? [])]) {
     auditCommandHelpTokens[argv.join(" ")] = countTokens(runHelp([...argv, "--help"]));
   }
   return {

@@ -60,6 +60,9 @@
     ["project", "show", "SyntheticProject"],
     ["repo", "show", "synthetic-repo"]
   ],
+  "writeCommands": [
+    ["work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7"]
+  ],
   "mcpTools": [
     {
       "name": "core_list_project_teams",

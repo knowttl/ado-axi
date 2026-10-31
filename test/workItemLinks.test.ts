@@ -40,9 +40,9 @@ describe("work-item link list", () => {
       query: { $expand: "relations" },
     });
     expect(result.links).toEqual([
-      { type: "parent", target: 4200, comment: "" },
-      { type: "pull-request", target: "812", comment: "implements" },
-      { type: "commit", target: "cccccccc", comment: "" },
+      { index: 0, type: "parent", target: 4200, comment: "" },
+      { index: 1, type: "pull-request", target: "812", comment: "implements" },
+      { index: 2, type: "commit", target: "cccccccc", comment: "" },
     ]);
   });
 
@@ -152,7 +152,7 @@ describe("work-item link add", () => {
       ],
     });
     const result = (await workItemCommand(["link", "list", "4211", ...context])) as Record<string, any>;
-    expect(result.links).toEqual([{ type: "branch", target: "feature/login", comment: "" }]);
+    expect(result.links).toEqual([{ index: 0, type: "branch", target: "feature/login", comment: "" }]);
   });
 
   it("validates the target selection", async () => {

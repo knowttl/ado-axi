@@ -152,6 +152,12 @@ Unknown aliases and API-rejected reference names produce errors.
   concurrently changed item. Calculated `--add-tags`/`--remove-tags` changes automatically test the
   revision read before merging, even without `--if-rev`; conflicts fail without retrying.
   `ref delete` sends the branch's current object ID as its guard.
+- **Link removal (TD-063).** `work-item link list <id>` shows zero-based relation indexes and the item revision.
+  `work-item link remove <id> --index <n> --if-rev <n>` re-reads the item and atomically tests that revision before removing exactly one relation.
+  Unknown indexes and revision conflicts fail without retrying.
+  See [work-item writes](doc/work-item-writes.md) for examples and host write gating.
+- **Host write gates.** Work-item writes are `create`, `update`, `comment`, `link add`, and `link remove`.
+  ado-axi executes writes immediately and has no local write-enable switch; hosts must keep these commands disabled unless writes are enabled.
 - **Missing flag values fail.** Value-taking flags such as `--if-rev`, `--old-object-id`, and context
   selectors require a value; a bare flag is a usage error (exit 2), not an omitted guard or selector.
 - **Policy is never bypassed.** `pr complete` sends the current source commit and separates

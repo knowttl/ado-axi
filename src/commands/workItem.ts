@@ -27,6 +27,7 @@ const UPDATE_FLAGS = [
 const COMMENT_FLAGS = ["body", "format"];
 const LINK_LIST_FLAGS = ["limit"];
 const LINK_ADD_FLAGS = ["parent", "child", "related", "pr", "commit", "branch", "repo", "comment", "if-rev"];
+const LINK_REMOVE_FLAGS = ["index", "if-rev"];
 
 const HIERARCHY: Record<string, string> = {
   parent: "System.LinkTypes.Hierarchy-Reverse",
@@ -704,9 +705,11 @@ async function linkWorkItem(args: ReturnType<typeof parseArgs>): Promise<Record<
       return listLinkTypes(rest);
     case "add":
       return addLink(rest);
+    case "remove":
+      return removeLink(rest);
     default:
       throw new AxiError(`unknown subcommand \`work-item link ${sub}\``, "VALIDATION_ERROR", [
-        "Subcommands: list | types | add",
+        "Subcommands: list | types | add | remove",
         "Run `ado-axi work-item --help` for the full reference",
       ]);
   }
@@ -763,9 +766,10 @@ async function listLinks(args: ReturnType<typeof parseArgs>): Promise<Record<str
     rev: item.rev ?? "",
     count: countLine(shown.length, relations.length, "links"),
     links: pickFields(
-      shown.map((relation) => {
+      shown.map((relation, index) => {
         const described = describeRelation(relation);
         return {
+          index,
           type: described.type,
           target: described.target,
           comment: relation.attributes?.comment ?? "",
@@ -773,6 +777,69 @@ async function listLinks(args: ReturnType<typeof parseArgs>): Promise<Record<str
       }),
       flagList(args, "fields"),
     ),
+    help: [`Run \`ado-axi work-item link remove ${id} --index <index> --if-rev ${item.rev}\` to remove a relation`],
+  };
+}
+
+function requiredRevision(args: ReturnType<typeof parseArgs>, id: number): number {
+  const rev = flagNumber(args, "if-rev");
+  if (rev === undefined || !Number.isInteger(rev) || rev < 1) {
+    throw new AxiError("--if-rev must be a positive integer", "VALIDATION_ERROR", [
+      `Run \`ado-axi work-item get ${id}\` to read the current rev`,
+    ]);
+  }
+  return rev;
+}
+
+function checkRevision(item: WorkItem, rev: number): void {
+  if (item.rev !== rev) {
+    throw new AxiError(`#${item.id} is at rev ${item.rev ?? "unknown"}, expected ${rev} - write refused`, "PRECONDITION_FAILED", [
+      `Run \`ado-axi work-item get ${item.id}\` to re-read the current rev before retrying`,
+    ]);
+  }
+}
+
+async function removeLink(args: ReturnType<typeof parseArgs>): Promise<Record<string, unknown>> {
+  assertKnownFlags(args, LINK_REMOVE_FLAGS, "work-item link remove");
+  const id = requireId(args, "work-item link remove <id> --index <index> --if-rev <n>");
+  const rev = requiredRevision(args, id);
+  const index = flagNumber(args, "index");
+  if (args.positionals.length !== 1 || index === undefined || !Number.isInteger(index) || index < 0) {
+    throw new AxiError("--index must be a non-negative integer and exactly one work item id is required", "VALIDATION_ERROR", [
+      `Run \`ado-axi work-item link list ${id}\` to read relation indexes and rev`,
+    ]);
+  }
+  const profile = profileFromArgs(args);
+  const current = await request<WorkItem>(profile, {
+    path: `_apis/wit/workitems/${id}`,
+    query: { $expand: "relations" },
+  });
+  checkRevision(current, rev);
+  const relation = current.relations?.[index];
+  if (!relation) {
+    throw new AxiError(`no relation at index ${index} on #${id} - removal refused`, "VALIDATION_ERROR", [
+      `Run \`ado-axi work-item link list ${id}\` to read relation indexes and rev`,
+    ]);
+  }
+  let updated: WorkItem;
+  try {
+    updated = await request<WorkItem>(profile, {
+      method: "PATCH",
+      path: `_apis/wit/workitems/${id}`,
+      contentType: "application/json-patch+json",
+      body: [patch("test", "/rev", rev), { op: "remove", path: `/relations/${index}` }],
+    });
+  } catch (err) {
+    if (err instanceof AxiError && (err.code === "PRECONDITION_FAILED" || /VS403351|Test Operation/i.test(err.message))) {
+      throw new AxiError(`#${id} changed during link removal - removal refused without retry`, "PRECONDITION_FAILED", [
+        `Run \`ado-axi work-item link list ${id}\` to re-read relation indexes and rev before retrying`,
+      ]);
+    }
+    throw err;
+  }
+  return {
+    removed: { "work-item": id, index, ...describeRelation(relation), rev: updated.rev ?? "" },
+    help: [`Run \`ado-axi work-item link list ${id}\` to see the remaining links`],
   };
 }
 

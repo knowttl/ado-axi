@@ -97,6 +97,7 @@ ado-axi work-item update <id> [--state <state>] [--title "..."] [--assigned-to <
                               [--set '{"Microsoft.VSTS.Common.Priority": 1}']
 ado-axi work-item comment <id> [--body "..."] [--format markdown|html]
 ado-axi work-item link list <id> [--limit 50]
+ado-axi work-item link remove <id> --index <n> --if-rev <n>
 ado-axi work-item link types [--limit 50] [--full]
 ado-axi query run <id|path> [--limit 30] [--fields id,title,state]
 ado-axi area list [--depth 10] [--limit 50] [--full]
@@ -109,6 +110,14 @@ ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> |
 `link list` resolves hierarchy links to work item ids and artifact links to pull request ids,
 short commit SHAs, and branch names. `link add` builds the `vstfs://` artifact URI for you — pass
 the pull request id, not a URL — and treats an already-present link as a no-op.
+
+`link remove` (TD-063) uses the zero-based index and revision printed by `link list`.
+It re-reads the item, rejects stale revisions or unknown indexes, then atomically tests `/rev` and removes exactly one relation without retrying conflicts.
+See [work-item writes](doc/work-item-writes.md).
+
+Work-item writes are `create`, `update`, `comment`, `link add`, and `link remove`.
+They execute immediately; hosts must keep them disabled unless writes are enabled.
+There is no local write-enable switch.
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.
