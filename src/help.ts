@@ -39,7 +39,7 @@ export const TOP_LEVEL_HELP = [
   "Overrides: --org <org> --project <project> (or $ADO_AXI_ORG / $ADO_AXI_PROJECT).",
   "--org accepts a name or organization-root URL; project context must be supplied separately.",
   "Auth per profile: az CLI login, or a PAT read from an env var.",
-  "Output: TOON on stdout. --full disables truncation, --fields a,b limits list columns.",
+  "Output: TOON on stdout. --full expands detail output (see command help for limits), --fields a,b limits list columns.",
 ].join("\n");
 
 export const COMMAND_HELP: Record<string, string> = {
