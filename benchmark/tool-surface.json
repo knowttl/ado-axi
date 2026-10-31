@@ -58,7 +58,10 @@
     ["team", "member", "list", "--team", "synthetic-team"],
     ["team", "list-member", "--team", "synthetic-team"],
     ["project", "show", "SyntheticProject"],
-    ["repo", "show", "synthetic-repo"]
+    ["repo", "show", "synthetic-repo"],
+    ["work-item", "link", "remove", "42", "--index", "1", "--if-rev", "7"],
+    ["work-item", "delete", "42", "--if-rev", "7"],
+    ["work-item", "delete", "42", "--if-rev", "7", "--destroy", "--confirm-destroy"]
   ],
   "mcpTools": [
     {

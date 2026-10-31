@@ -12,6 +12,8 @@ personal access token).
 
 Install globally for normal use with `npm install -g @knowttl/ado-axi`. If `ado-axi` is not on PATH, prefix commands with `npx -y @knowttl/ado-axi`.
 
+Before running mutations, follow [write enablement](README.md#behavior).
+
 ## Orientation
 
 Run `ado-axi` with no arguments first. It prints the active profile plus your open work items,
@@ -96,7 +98,9 @@ ado-axi work-item update <id> [--state <state>] [--title "..."] [--assigned-to <
                               [--add-tags a,b] [--remove-tags c] [--if-rev <n>]
                               [--set '{"Microsoft.VSTS.Common.Priority": 1}']
 ado-axi work-item comment <id> [--body "..."] [--format markdown|html]
+ado-axi work-item delete <id> --if-rev <n> [--destroy --confirm-destroy]
 ado-axi work-item link list <id> [--limit 50]
+ado-axi work-item link remove <id> --index <n> --if-rev <n>
 ado-axi work-item link types [--limit 50] [--full]
 ado-axi query run <id|path> [--limit 30] [--fields id,title,state]
 ado-axi area list [--depth 10] [--limit 50] [--full]
@@ -109,6 +113,8 @@ ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> |
 `link list` resolves hierarchy links to work item ids and artifact links to pull request ids,
 short commit SHAs, and branch names. `link add` builds the `vstfs://` artifact URI for you — pass
 the pull request id, not a URL — and treats an already-present link as a no-op.
+
+See [work-item writes](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md) for `delete` and `link remove` examples, revision guards, permanent destruction confirmation, and the DELETE race window.
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.

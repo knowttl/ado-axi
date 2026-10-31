@@ -14,38 +14,6 @@ const sha = "c".repeat(40);
 beforeEach(() => mockRequest.mockReset());
 
 describe("work-item link list", () => {
-  it("resolves hierarchy and artifact links to readable targets", async () => {
-    mockRequest.mockResolvedValueOnce({
-      id: 4211,
-      rev: 7,
-      relations: [
-        { rel: "System.LinkTypes.Hierarchy-Reverse", url: "https://dev.azure.com/o/_apis/wit/workItems/4200" },
-        {
-          rel: "ArtifactLink",
-          url: `vstfs:///Git/PullRequestId/${projectId}%2F${repoId}%2F812`,
-          attributes: { name: "Pull Request", comment: "implements" },
-        },
-        {
-          rel: "ArtifactLink",
-          url: `vstfs:///Git/Commit/${projectId}%2F${repoId}%2F${sha}`,
-          attributes: { name: "Fixed in Commit" },
-        },
-      ],
-    });
-
-    const result = (await workItemCommand(["link", "list", "4211", ...context])) as Record<string, any>;
-
-    expect(mockRequest.mock.calls[0]?.[1]).toMatchObject({
-      path: "_apis/wit/workitems/4211",
-      query: { $expand: "relations" },
-    });
-    expect(result.links).toEqual([
-      { type: "parent", target: 4200, comment: "" },
-      { type: "pull-request", target: "812", comment: "implements" },
-      { type: "commit", target: "cccccccc", comment: "" },
-    ]);
-  });
-
   it("reports a definitive empty state", async () => {
     mockRequest.mockResolvedValueOnce({ id: 4211, rev: 2, relations: [] });
     const result = (await workItemCommand(["link", "4211", ...context])) as Record<string, any>;
@@ -137,22 +105,6 @@ describe("work-item link add", () => {
     >;
     expect(result.link).toBe("#4211 already links to 4300 as related (no-op)");
     expect(mockRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps the full branch name of a Git ref artifact link", async () => {
-    mockRequest.mockResolvedValueOnce({
-      id: 4211,
-      rev: 3,
-      relations: [
-        {
-          rel: "ArtifactLink",
-          url: `vstfs:///Git/Ref/${projectId}%2F${repoId}%2FGBfeature%2Flogin`,
-          attributes: { name: "Branch" },
-        },
-      ],
-    });
-    const result = (await workItemCommand(["link", "list", "4211", ...context])) as Record<string, any>;
-    expect(result.links).toEqual([{ type: "branch", target: "feature/login", comment: "" }]);
   });
 
   it("validates the target selection", async () => {

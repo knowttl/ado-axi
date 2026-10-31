@@ -30,7 +30,7 @@ numbers against your own organization.
 
 | Interface | Context (Turn 0) | Output | Measured payload | Write Safety | Guidance |
 |---|---|---|---|---|---|
-| **`ado-axi`** | Skill frontmatter always; body loaded on demand (see [recorded surface measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
+| **`ado-axi`** | Skill frontmatter always; body loaded on demand (see [recorded surface measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Opt-in writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
 | **Raw CLI** (`az devops`) | ~0 tokens | JSON / ASCII | Baseline (full REST payloads, slow startup) | ❌ Direct mutations | Human text / exit codes |
 | **Azure DevOps MCP** | **16,356 tokens** (40 tool schemas, v2.10.0) | JSON-RPC | Highest overhead (full schemas resent every turn) | Varies | Schema validation errors |
 
@@ -64,9 +64,11 @@ Omit `-g` to install the skill for the current project only.
 Profiles live in `~/.ado-axi/config.json` (override with `./ado-axi.config.json` or
 `$ADO_AXI_CONFIG`):
 
+Configuration writes require [write enablement](#behavior).
+
 ```sh
-ado-axi config init --org acme --project Platform --name acme --auth az
-ado-axi config init --org contoso --project Web --name contoso --auth pat --pat-env ADO_CONTOSO_PAT
+ADO_AXI_WRITES=1 ado-axi config init --org acme --project Platform --name acme --auth az
+ADO_AXI_WRITES=1 ado-axi config init --org contoso --project Web --name contoso --auth pat --pat-env ADO_CONTOSO_PAT
 ado-axi doctor
 ```
 
@@ -94,6 +96,8 @@ ado-axi doctor
   project-specific profile. Use `ado-axi project list --org <org>` to discover projects.
 
 ## Use
+
+For the mutating examples below, first enable writes as described in [Behavior](#behavior).
 
 ```sh
 ado-axi                                   # dashboard: your work items, active project PRs, recent runs
@@ -152,6 +156,11 @@ Unknown aliases and API-rejected reference names produce errors.
   concurrently changed item. Calculated `--add-tags`/`--remove-tags` changes automatically test the
   revision read before merging, even without `--if-rev`; conflicts fail without retrying.
   `ref delete` sends the branch's current object ID as its guard.
+- **Work-item deletion and link removal (TD-068, TD-063).** See [work-item writes](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md) for commands, revision guards, permanent destruction confirmation, and the DELETE race window.
+- **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item and PR mutations, `pipeline run`, `ref create|delete`, and `config init|add`.
+  Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
+  Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.
+  Native read commands, including WIQL queries, and help remain available without enablement.
 - **Missing flag values fail.** Value-taking flags such as `--if-rev`, `--old-object-id`, and context
   selectors require a value; a bare flag is a usage error (exit 2), not an omitted guard or selector.
 - **Policy is never bypassed.** `pr complete` sends the current source commit and separates

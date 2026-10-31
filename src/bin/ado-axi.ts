@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { encode } from "@toon-format/toon";
 import { AxiError, runAxiCli } from "axi-sdk-js";
 import { normalizeArgv } from "../lib/argv.js";
+import { assertWritesEnabled, isWriteCommand } from "../lib/writes.js";
 import { COMMAND_HELP, DESCRIPTION, TOP_LEVEL_HELP } from "../help.js";
 
 const USAGE_CODES = new Set([
@@ -181,7 +182,7 @@ await runAxiCli({
   renderUnknownCommand: unknownCommand,
   formatError,
   home: homeHandler,
-  commands: {
+  commands: Object.fromEntries(Object.entries({
     security: securityHandler,
     "service-endpoint": serviceEndpointHandler,
     "variable-group": variableGroupHandler,
@@ -213,5 +214,8 @@ await runAxiCli({
     api: apiHandler,
     doctor: doctorHandler,
     config: configHandler,
-  },
+  }).map(([command, handler]) => [command, async (args: string[]) => {
+    assertWritesEnabled(isWriteCommand(aliases[command] ?? command, args));
+    return handler(args);
+  }])),
 });
