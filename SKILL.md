@@ -282,16 +282,7 @@ ado-axi repo policy update <id> --policy-json '<changed fields JSON object>' [--
 ado-axi repo policy delete <id> --if-rev <n> --confirm-delete
 ```
 
-Repository and policy mutations require `ADO_AXI_WRITES=1`; reads remain available with writes disabled.
-Repository changes precheck the selected `--repo` and mutate the resolved immutable ID.
-Repository delete requires `--confirm-delete`; policy delete also requires a matching `--if-rev` precheck.
-Policy update sends the fetched revision and optionally checks `--if-rev` before writing.
-Repository mutations and policy DELETE have no documented atomic revision predicate.
-`--policy-json` accepts `type`, `settings`, `isEnabled`, and `isBlocking`; nested settings are replaced as a whole.
-`--config <path>` selects the profile configuration file; saved default and named profiles remain available.
-Import requires an existing empty repository, a credential-free HTTPS `--source-url`, and an optional service endpoint ID for authentication.
-Mutation output and errors withhold repository URLs, source details, and policy settings.
-See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for TD-065 slice 3 of 4.
+See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for write enablement, profile selection, policy JSON, import authentication, output masking, and concurrency limits.
 
 `repo file` reads a single file straight from Azure DevOps: the default branch, a branch tip
 (`--ref`), or an exact revision (`--commit`). Use it for files outside the working copy — another

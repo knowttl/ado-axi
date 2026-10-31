@@ -1,2 +1,2 @@
-TD-065 slice 2 of 4 adds run artifact list/download and Classic release list/show/create.
-See [artifacts and releases](doc/artifacts-releases.md) for write enablement, download safety, deployment behavior, the artifact upload limitation, and the remaining slices.
+TD-065 slice 3 of 4 adds repository create/update/delete/import and policy create/update/delete.
+See [repository administration](doc/repository-admin.md) for write enablement, profile selection, context-preserving follow-up commands, policy JSON, import authentication, and concurrency limits.
