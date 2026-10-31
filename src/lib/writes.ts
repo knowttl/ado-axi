@@ -23,6 +23,7 @@ export function isWriteCommand(command: string, argv: string[]): boolean {
       return ["run", "create", "update", "delete"].includes(action ?? "")
         || (action === "build" && ["tag", "cancel"].includes(operation ?? ""))
         || (action === "runs" && operation === "tag")
+        || (action === "release" && operation === "create")
         || (action === "folder" && ["create", "delete"].includes(operation ?? ""));
     case "ref":
       return action === "create" || action === "delete";

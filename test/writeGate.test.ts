@@ -27,6 +27,7 @@ const mutations = [
   ["pipeline", "build", "tag", "add", "42"], ["pipeline", "build", "tag", "remove", "42"],
   ["pipeline", "runs", "tag", "add", "42"], ["pipeline", "runs", "tag", "remove", "42"],
   ["pipeline", "folder", "create"], ["pipeline", "folder", "delete"],
+  ["pipeline", "release", "create"], ["pipelines", "release", "create", "--definition", "4"],
   ["ref", "create"], ["ref", "delete"], ["refs", "delete"],
   ["config", "init"], ["config", "add"],
   ["api", "POST", "_apis/example"], ["api", "PATCH", "_apis/example"],

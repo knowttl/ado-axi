@@ -221,6 +221,11 @@ ado-axi pipeline build cancel <run-id>
 ado-axi pipeline folder list [--path <folder>] [--limit 100] [--full]
 ado-axi pipeline folder create --path '<absolute-folder>'
 ado-axi pipeline folder delete --path '<absolute-folder>' --confirm-delete
+ado-axi pipeline runs artifact list <run-id> [--limit 100] [--full]
+ado-axi pipeline runs artifact download <run-id> --name <name> --out <path> [--force]
+ado-axi pipeline release list [--definition <id>] [--limit 100] [--full]
+ado-axi pipeline release show <id> [--limit 100] [--full]
+ado-axi pipeline release create --definition <id> [--description <text>] [--draft true|false] [--artifacts '<JSON array>']
 ado-axi pipeline runs [--pipeline <id>] [--branch <branch>] [--result failed] [--limit 20]
 ado-axi pipeline run --pipeline <id> [--branch <branch>] [--variables '{"k":"v"}']
 ado-axi pipeline logs <run-id> [--log <log-id>] [--tail 120] [--full] [--failed-only]
@@ -229,6 +234,14 @@ ado-axi pipeline watch <run-id> [--interval 10] [--timeout 1800]
 ```
 
 See [pipeline administration](https://github.com/knowttl/ado-axi/blob/main/doc/pipeline-admin.md) for JSON definition requirements, revision guards, delete safety, tag aliases, folder limits, and examples (TD-065).
+
+Artifact list/download and Classic release list/show stay read-only remotely and work with writes disabled.
+Artifact download requires a user-selected `--out` file, caps at 100 MiB, reports bytes, and never overwrites without `--force`.
+Lists stay bounded under `--full`; release detail masks secret variables and URLs.
+Release create requires `ADO_AXI_WRITES=1` and may trigger deployments unless `--draft true` is selected.
+Optional `--artifacts` selects release artifact versions, for example `[{"alias":"_CI","instanceReference":{"id":"42"}}]`.
+Artifact upload is omitted because the Build Artifacts create API registers existing resources rather than accepting local file bytes.
+See [artifacts and releases](https://github.com/knowttl/ado-axi/blob/main/doc/artifacts-releases.md) for TD-065 slice 2 of 4.
 
 `watch` uses seconds, refuses intervals below 2 seconds, and enforces its deadline across
 authentication, HTTP requests, and response bodies (30 minutes by default). Failed, cancelled,
@@ -273,7 +286,7 @@ previously observed version. Existing-at-the-intended-object and already-absent 
 
 ## Escape hatch
 
-Anything without a dedicated command, such as wikis, test plans, code search, or artifacts, goes through the raw REST bridge:
+Anything without a dedicated command, such as wikis, test plans, or code search, goes through the raw REST bridge:
 
 ```sh
 ado-axi api _apis/wiki/wikis

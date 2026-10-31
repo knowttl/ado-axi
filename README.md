@@ -135,6 +135,9 @@ ado-axi pipeline runs --result failed
 ado-axi pipeline update 42 --definition '{"name":"CI"}' --if-rev 7
 ado-axi pipeline build tag add 98231 --tag verified
 ado-axi pipeline folder list --limit 20
+ado-axi pipeline runs artifact list 98231 --limit 20
+ado-axi pipeline runs artifact download 98231 --name drop --out ./drop.zip
+ado-axi pipeline release list --limit 20
 ado-axi pipeline timeline 98231
 ado-axi pipeline logs 98231 --failed-only --tail 200
 ado-axi pipeline logs 98231 --tail 200
@@ -167,6 +170,10 @@ Unknown aliases and API-rejected reference names produce errors.
 - **Work-item deletion and link removal (TD-068, TD-063).** See [work-item writes](https://github.com/knowttl/ado-axi/blob/main/doc/work-item-writes.md) for commands, revision guards, permanent destruction confirmation, and the DELETE race window.
 - **Pipeline administration (TD-065).** Definition create/update/delete, build and run tags, cancellation, and folder administration are available.
   See [pipeline administration](https://github.com/knowttl/ado-axi/blob/main/doc/pipeline-admin.md) for JSON definitions, revision guards, delete confirmations, and bounded folder reads.
+- **Artifacts and releases (TD-065 slice 2 of 4).** List run artifacts, download a named ZIP to explicit `--out`, and list/show/create Classic releases.
+  Downloads cap at 100 MiB, report byte counts, and never overwrite without `--force`.
+  Artifact reads/downloads and release list/show work with writes disabled; release create requires `ADO_AXI_WRITES=1`.
+  See [artifacts and releases](https://github.com/knowttl/ado-axi/blob/main/doc/artifacts-releases.md) for commands, deployment behavior, and the artifact upload limitation.
 - **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item and PR mutations, pipeline mutations, `ref create|delete`, and `config init|add`.
   Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
   Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.
