@@ -27,8 +27,7 @@ Page get requires a wiki identifier or name with `--wiki` and a page path with `
 Relative page paths normalize to a leading slash.
 The result includes page ID, path, server ETag, original character count, and Markdown content.
 Content defaults to a 4000-character preview, with a `--full` hint only when it is truncated.
-Credential-bearing URLs and links containing common token/signature query parameters are redacted in both preview and full output.
-This output redaction does not modify stored page content.
+Page content is returned verbatim, subject to preview truncation.
 API error details are withheld to protect secrets.
 
 ## Create and update

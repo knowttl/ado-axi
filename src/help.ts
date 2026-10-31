@@ -324,7 +324,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "page update --wiki <id|name> --path <page> (--content <text> | --file <utf8-markdown>) [--if-match <etag>]",
     "  Update reads the current ETag and sends it in If-Match; --if-match additionally checks a caller's earlier ETag.",
     "  Copy ETag values exactly, including quotes; stale or missing tags refuse, and conflicts are not retried.",
-    "  Credential-bearing and signed links are masked in read output, including --full; stored content is unchanged.",
+    "  Page content is returned verbatim, subject to preview truncation.",
     "  --config <profile-file>, --profile, --org, and --project select context and are preserved in follow-up hints.",
     "",
     "Examples:",

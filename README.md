@@ -184,7 +184,7 @@ Unknown aliases and API-rejected reference names produce errors.
   See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for JSON policy settings, revision behavior, import authentication, and concurrency limits.
 - **Wiki administration (TD-065 slice 4 of 4).** List wikis and read/create/update pages with content previews and ETag update guards.
   Reads work with writes disabled; page create/update require `ADO_AXI_WRITES=1`.
-  See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for content files, explicit ETag checks, and output redaction.
+  See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for content files, explicit ETag checks, and page content output.
 - **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item, PR, pipeline, repository, policy, and wiki mutations, `ref create|delete`, and `config init|add`.
   Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
   Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.
@@ -219,6 +219,8 @@ detail lives, alongside the agent-facing guide in [SKILL.md](SKILL.md).
 Audit reads cover repository policies, security groups and permissions, service endpoints, variable groups, pipeline variables and definitions, agents, pools, queues, users, teams, projects, and repositories.
 Lists use TOON, default to `--limit 100`, and report both the total and how many records were omitted.
 `--full` expands fields without lifting collection limits or revealing secret variables, service connection credentials, or agent capabilities.
+Audit output strips userinfo from structured URL fields using URL parsing.
+Free-text content is not scanned for URLs.
 
 ```sh
 ado-axi repo policy list --repo <repository-id> --limit 10

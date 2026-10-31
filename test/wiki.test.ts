@@ -84,82 +84,17 @@ describe("TD-065 wiki reads", () => {
       .toMatchObject({ content: "x".repeat(4500) });
   });
 
-  it("masks credential-bearing and signed Markdown URLs even with --full", async () => {
-    fetchMock.mockResolvedValueOnce(json({ ...page,
-      content: `[signed](https://example.com/download?sig=${secret}) [auth](https://user:${secret}@example.com/repo) [docs](https://example.com/docs)` }, 200, { etag }));
-    const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", "--full"]);
-    expect((result.page as Record<string, unknown>).content)
-      .toBe("[signed]([redacted URL]) [auth]([redacted URL]) [docs](https://example.com/docs)");
-    expect(JSON.stringify(result)).not.toContain(secret);
-  });
-
-  describe.each([
+  it.each([
     { mode: "default", flags: [] },
     { mode: "full", flags: ["--full"] },
-  ])("URL redaction in $mode output", ({ flags }) => {
-    it.each([
-      { name: "named colon", prefix: "https&colon;//" },
-      { name: "decimal colon", prefix: "https&#58;//" },
-      { name: "hexadecimal colon", prefix: "https&#x3A;//" },
-      { name: "named slashes", prefix: "https:&sol;&sol;" },
-      { name: "decimal slashes", prefix: "https:&#47;&#47;" },
-      { name: "hexadecimal slashes", prefix: "https:&#x2f;&#X2F;" },
-      { name: "decimal scheme letters", prefix: "&#104;&#116;&#116;&#112;&#115;://" },
-      { name: "hexadecimal scheme letters", prefix: "&#x68;&#x74;&#x74;&#x70;&#x73;://" },
-      { name: "mixed HTTP prefix", prefix: "&#104;tt&#x70;&colon;&sol;&#47;" },
-      { name: "mixed HTTPS prefix", prefix: "h&#x74;t&#112;s&#58;&sol;&#x2f;" },
-    ])("masks signed and credential URLs with $name", async ({ prefix }) => {
-      vi.stubEnv("ADO_AXI_WRITES", "0");
-      const docs = `[docs](${prefix}example.com/docs?lang=en&amp;view=full)`;
-      const content = `Before [down&#108;oad](${prefix}example.com/file?sig=${secret}) `
-        + `[auth](${prefix}user:${secret}@example.com/file) ${docs} after`;
-      fetchMock.mockResolvedValueOnce(json({ ...page, content }, 200, { etag }));
-      const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", ...flags]);
-      expect(result.page).toEqual({ id: page.id, path: page.path, etag, chars: content.length,
-        content: `Before [down&#108;oad]([redacted URL]) [auth]([redacted URL]) ${docs} after` });
-      expect(JSON.stringify(result)).not.toContain(secret);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(sent(0).method).toBe("GET");
-    });
-
-    it.each([
-      { name: "signed URL with an apostrophe", url: `https://example.com/team's/file?sig=${secret}` },
-      { name: "signed URL with parentheses", url: `https://example.com/team(reports)/file?sig=${secret}` },
-      { name: "signed URL with brackets", url: `https://[2001:db8::1]/file?sig=${secret}` },
-      { name: "credentials with an apostrophe", url: `https://team's:${secret}@example.com/file` },
-      { name: "credentials with parentheses", url: `https://team(reports):${secret}@example.com/file` },
-      { name: "credentials with brackets", url: `https://user:prefix]${secret}@example.com/file` },
-      { name: "named ampersand", url: `https://example.com/file?sv=1&amp;sig=${secret}` },
-      { name: "uppercase named ampersand", url: `https://example.com/file?sv=1&AMP;sig=${secret}` },
-      { name: "decimal ampersand", url: `https://example.com/file?sv=1&#38;sig=${secret}` },
-      { name: "hexadecimal ampersand", url: `https://example.com/file?sv=1&#x26;sig=${secret}` },
-      { name: "named question mark", url: `https://example.com/file&quest;sig=${secret}` },
-      { name: "decimal question mark", url: `https://example.com/file&#63;sig=${secret}` },
-      { name: "hexadecimal question mark", url: `https://example.com/file&#X3F;sig=${secret}` },
-      { name: "named equals sign", url: `https://example.com/file?sig&equals;${secret}` },
-      { name: "decimal equals sign", url: `https://example.com/file?sig&#61;${secret}` },
-      { name: "hexadecimal equals sign", url: `https://example.com/file?sig&#x3d;${secret}` },
-      { name: "named credential delimiters", url: `https://user&colon;${secret}&commat;example.com/file` },
-      { name: "decimal credential delimiters", url: `https://user&#58;${secret}&#64;example.com/file` },
-      { name: "hexadecimal credential delimiters", url: `https://user&#x3a;${secret}&#x40;example.com/file` },
-      { name: "decimal parameter name", url: `https://example.com/file?&#115;&#105;&#103;=${secret}` },
-      { name: "hexadecimal parameter name", url: `https://example.com/file?&#x73;&#x69;&#x67;=${secret}` },
-      { name: "named underscore", url: `https://example.com/file?api&lowbar;key=${secret}` },
-      { name: "alternate named underscore", url: `https://example.com/file?access&UnderBar;token=${secret}` },
-      { name: "named hyphen", url: `https://example.com/file?api&hyphen;key=${secret}` },
-      { name: "alternate named hyphen", url: `https://example.com/file?api&dash;key=${secret}` },
-    ])("masks $name and preserves surrounding Markdown", async ({ url }) => {
-      vi.stubEnv("ADO_AXI_WRITES", "0");
-      const docs = "[docs](https://example.com/team's/report(v1)?lang=en&amp;view=full)";
-      const content = `[download](${url}) ${docs}`;
-      fetchMock.mockResolvedValueOnce(json({ ...page, content }, 200, { etag }));
-      const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", ...flags]);
-      expect(result.page).toEqual({ id: page.id, path: page.path, etag,
-        chars: content.length, content: `[download]([redacted URL]) ${docs}` });
-      expect(JSON.stringify(result)).not.toContain(secret);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(sent(0).method).toBe("GET");
-    });
+  ])("returns original Markdown in $mode output", async ({ flags }) => {
+    const content = `[signed](https://example.com/file?sig=${secret}) `
+      + `[auth](https://user:${secret}@example.com/file) `
+      + `[entity](https&colon;//example.com/file?sv=1&amp;sig=${secret}) `
+      + `[escaped](https\\://example.com/file?access\\_token=${secret})`;
+    fetchMock.mockResolvedValueOnce(json({ ...page, content }, 200, { etag }));
+    const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", ...flags]);
+    expect(result.page).toEqual({ id: page.id, path: page.path, etag, chars: content.length, content });
   });
 });
 
