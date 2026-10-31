@@ -99,6 +99,8 @@ ado-axi doctor
 ado-axi                                   # dashboard: your work items, active project PRs, recent runs
 ado-axi work-item list --assigned-to @me  # open work items
 ado-axi work-item get 4211 --comments
+ado-axi work-item list --fields id,created,System.AssignedTo,Custom.EventSeverity
+ado-axi work-item get 4211 --full
 ado-axi work-item comment 4211 --body "**Status:** ready"
 ado-axi work-item update 4211 --state "In Progress"
 ado-axi work-item update 4211 --add-tags agent-claimed --if-rev 7   # compare-and-swap claim
@@ -128,6 +130,11 @@ ado-axi test results 98231                # failing tests of a run, with error m
 ado-axi api _apis/wiki/wikis               # anything not covered by a command
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
+
+`work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
+`--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
+Unknown aliases and API-rejected reference names produce errors.
+`work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
 
 ## Behavior
 

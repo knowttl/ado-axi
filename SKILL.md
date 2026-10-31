@@ -66,6 +66,8 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.
+See [README usage](README.md#use) for work-item list counts, field selection, and full-detail output limits.
+
 `work-item comment` stores comments as Markdown by default; use `--format html` only when supplying raw HTML. The comments API requires `7.1-preview.4` or later for this format selection.
 `update` is idempotent — setting a field to its current value reports a no-op and exits 0.
 

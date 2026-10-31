@@ -39,7 +39,7 @@ export const TOP_LEVEL_HELP = [
   "Overrides: --org <org> --project <project> (or $ADO_AXI_ORG / $ADO_AXI_PROJECT).",
   "--org accepts a name or organization-root URL; project context must be supplied separately.",
   "Auth per profile: az CLI login, or a PAT read from an env var.",
-  "Output: TOON on stdout. --full disables truncation, --fields a,b limits list columns.",
+  "Output: TOON on stdout. --full expands detail output (see command help for limits), --fields a,b limits list columns.",
 ].join("\n");
 
 export const COMMAND_HELP: Record<string, string> = {
@@ -49,7 +49,11 @@ export const COMMAND_HELP: Record<string, string> = {
     "list    [--state open|all|<State>] [--type <type>] [--assigned-to @me|<name>]",
     "        [--iteration @current|<path>] [--area <path>] [--tag <tag>] [--search <text>]",
     '        [--query "<raw WIQL>"] [--limit 30] [--fields id,title,state]',
+    "        --limit bounds displayed items; count reports only the number shown, not an exhaustive total.",
+    "        --fields accepts id,type,title,state,assignee,created,changed or any field reference name.",
+    "        Example: --fields System.AssignedTo,System.CreatedDate,Custom.EventSeverity",
     "get     <id> [--comments] [--relations] [--full]   # includes rev for --if-rev updates",
+    "        --full includes the complete description and every non-System field by reference name (1200 chars per extra text field).",
     'create  --type <type> --title "..." [--description "..."] [--description-format markdown|html] [--assigned-to <user>]',
     "        # when --description is omitted, piped stdin is used",
     '        [--area <path>] [--iteration <path>] [--parent <id>] [--tags "a; b"] [--set \'{"Field.Ref": value}\']',
