@@ -55,6 +55,10 @@ ado-axi work-item update <id> [--state <state>] [--title "..."] [--assigned-to <
                               [--set '{"Microsoft.VSTS.Common.Priority": 1}']
 ado-axi work-item comment <id> [--body "..."] [--format markdown|html]
 ado-axi work-item link list <id> [--limit 50]
+ado-axi work-item link types [--limit 50] [--full]
+ado-axi query run <id|path> [--limit 30] [--fields id,title,state]
+ado-axi area list [--depth 10] [--limit 50] [--full]
+ado-axi iteration list [--depth 10] [--limit 50] [--full]
 ado-axi work-item link add <id> (--parent <id> | --child <id> | --related <id> | --pr <id>
                                  | --commit <40-hex> --repo <name> | --branch <name> --repo <name>)
                                 [--comment "..."] [--if-rev <n>]
@@ -67,6 +71,8 @@ the pull request id, not a URL — and treats an already-present link as a no-op
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.
 See [README usage](README.md#use) for work-item list counts, field selection, and full-detail output limits.
+
+See [Boards read commands](doc/boards-reads.md) for saved query selectors, historical results, tree depth, and limit and count semantics.
 
 `work-item comment` stores comments as Markdown by default; use `--format html` only when supplying raw HTML. The comments API requires `7.1-preview.4` or later for this format selection.
 `update` is idempotent — setting a field to its current value reports a no-op and exits 0.

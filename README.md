@@ -30,7 +30,7 @@ numbers against your own organization.
 
 | Interface | Context (Turn 0) | Output | Measured payload | Write Safety | Guidance |
 |---|---|---|---|---|---|
-| **`ado-axi`** | **86 tokens** (`SKILL.md` frontmatter; body 3,315 only when the agent opens it) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
+| **`ado-axi`** | Skill frontmatter always; body on demand (see [recorded measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
 | **Raw CLI** (`az devops`) | ~0 tokens | JSON / ASCII | Baseline (full REST payloads, slow startup) | ❌ Direct mutations | Human text / exit codes |
 | **Azure DevOps MCP** | **16,356 tokens** (40 tool schemas, v2.10.0) | JSON-RPC | Highest overhead (full schemas resent every turn) | Varies | Schema validation errors |
 
@@ -106,6 +106,10 @@ ado-axi work-item update 4211 --state "In Progress"
 ado-axi work-item update 4211 --add-tags agent-claimed --if-rev 7   # compare-and-swap claim
 ado-axi work-item link add 4211 --pr 812                            # attach the pull request
 ado-axi work-item link list 4211
+ado-axi work-item link types
+ado-axi query run "Shared Queries/Open bugs" --limit 10
+ado-axi area list --depth 2
+ado-axi iteration list --depth 2
 ado-axi pr list --reviewer @me
 ado-axi pr comments 812 --full
 ado-axi pr thread list 812
@@ -132,7 +136,10 @@ cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=paylo
 ```
 
 `work-item list --limit` bounds the WIQL request and displayed items; the count reports only the number shown because WIQL results may not be exhaustive.
-`--fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
+
+See [Boards read commands](doc/boards-reads.md) for relation type discovery, saved queries, area and iteration paths, and their limit and count semantics.
+
+`work-item list --fields` accepts `id,type,title,state,assignee,created,changed` and any field reference name, including `System.*`, `Microsoft.VSTS.*`, and `Custom.*`.
 Unknown aliases and API-rejected reference names produce errors.
 `work-item get --full` includes the complete description plus every non-System field, keyed by reference name under `fields`; extra text fields are limited to 1200 characters with a truncation marker.
 

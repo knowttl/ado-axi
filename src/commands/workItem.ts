@@ -143,14 +143,17 @@ async function fetchWorkItems(
   profile: ResolvedProfile,
   ids: number[],
   fields: string[],
+  getOnly = false,
+  asOf?: string,
 ): Promise<WorkItem[]> {
   const out: WorkItem[] = [];
   for (let i = 0; i < ids.length; i += 200) {
     const chunk = ids.slice(i, i + 200);
     const result = await request<{ value?: WorkItem[] }>(profile, {
-      method: "POST",
-      path: "_apis/wit/workitemsbatch",
-      body: { ids: chunk, fields },
+      method: getOnly ? "GET" : "POST",
+      path: getOnly ? "_apis/wit/workitems" : "_apis/wit/workitemsbatch",
+      ...(getOnly ? { query: { ids: chunk.join(","), fields: fields.join(","), asOf } }
+        : { body: { ids: chunk, fields, asOf } }),
     });
     out.push(...(result.value ?? []));
   }
@@ -159,8 +162,9 @@ async function fetchWorkItems(
 
 export async function listWorkItems(
   args: ReturnType<typeof parseArgs>,
+  savedQuery?: string,
 ): Promise<Record<string, unknown>> {
-  assertKnownFlags(args, LIST_FLAGS, "work-item list");
+  assertKnownFlags(args, savedQuery ? ["limit"] : LIST_FLAGS, savedQuery ? "query run" : "work-item list");
   const columns = flagList(args, "fields");
   const selected = columns?.length ? columns : DEFAULT_COLUMNS;
   const requestedFields = selected.map((name) => {
@@ -174,20 +178,26 @@ export async function listWorkItems(
   const profile = profileFromArgs(args);
   const project = requireProject(profile, "work-item list");
   const limit = flagNumber(args, "limit") ?? 30;
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new AxiError("--limit must be a positive integer", "VALIDATION_ERROR");
+  }
   const wiql = buildWiql(args, project);
 
-  const result = await request<{ workItems?: Array<{ id: number }> }>(profile, {
-    method: "POST",
-    path: "_apis/wit/wiql",
+  const result = await request<{ asOf?: string; workItems?: Array<{ id: number }>; workItemRelations?: Array<{ source?: { id: number }; target?: { id: number } }> }>(profile, {
+    method: savedQuery ? "GET" : "POST",
+    path: savedQuery ? `_apis/wit/wiql/${encodeURIComponent(savedQuery)}` : "_apis/wit/wiql",
     project,
     query: { $top: limit },
-    body: { query: wiql },
+    ...(savedQuery ? {} : { body: { query: wiql } }),
   });
-  const ids = (result.workItems ?? []).map((w) => w.id);
+  const ids = result.workItems?.map((w) => w.id) ?? [...new Set(
+    (result.workItemRelations ?? []).flatMap((r) => [r.source?.id, r.target?.id])
+      .filter((id): id is number => id !== undefined),
+  )];
 
   if (ids.length === 0) {
     return {
-      "work-items": `0 work items found in ${project} (${describeFilter(args)})`,
+      "work-items": `0 work items found in ${project} (${savedQuery ? "saved query" : describeFilter(args)})`,
       help: [
         "Run `ado-axi work-item list --state all` to include closed items",
         'Run `ado-axi work-item list --query "SELECT [System.Id] FROM WorkItems WHERE ..."` for a raw WIQL query',
@@ -197,7 +207,7 @@ export async function listWorkItems(
   }
 
   const page = ids.slice(0, limit);
-  const items = await fetchWorkItems(profile, page, [...new Set(requestedFields)]);
+  const items = await fetchWorkItems(profile, page, [...new Set(requestedFields)], savedQuery !== undefined, result.asOf);
   const rows = items.map((item) => Object.fromEntries(selected.map((column, index) => {
     const reference = requestedFields[index]!;
     const value = reference === "System.Id" ? item.id : item.fields?.[reference];
@@ -690,14 +700,40 @@ async function linkWorkItem(args: ReturnType<typeof parseArgs>): Promise<Record<
   switch (sub) {
     case "list":
       return listLinks(rest);
+    case "types":
+      return listLinkTypes(rest);
     case "add":
       return addLink(rest);
     default:
       throw new AxiError(`unknown subcommand \`work-item link ${sub}\``, "VALIDATION_ERROR", [
-        "Subcommands: list | add",
+        "Subcommands: list | types | add",
         "Run `ado-axi work-item --help` for the full reference",
       ]);
   }
+}
+
+async function listLinkTypes(args: ReturnType<typeof parseArgs>): Promise<Record<string, unknown>> {
+  assertKnownFlags(args, ["limit"], "work-item link types");
+  if (args.positionals.length > 0) {
+    throw new AxiError("Usage: ado-axi work-item link types [--limit 50] [--full]", "VALIDATION_ERROR");
+  }
+  const limit = flagNumber(args, "limit") ?? 50;
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new AxiError("--limit must be a positive integer", "VALIDATION_ERROR");
+  }
+  const types = await requestList<{ referenceName: string; name: string; attributes?: { usage?: string; enabled?: boolean } }>(
+    profileFromArgs(args), { path: "_apis/wit/workitemrelationtypes" },
+  );
+  const shown = flagBool(args, "full") ? types : types.slice(0, limit);
+  return {
+    count: countLine(shown.length, types.length, "link types"),
+    "link-types": types.length === 0 ? "0 link types found" : pickFields(shown.map((type) => ({
+      reference: type.referenceName, name: type.name, usage: type.attributes?.usage ?? "",
+      enabled: type.attributes?.enabled ?? "",
+    })), flagList(args, "fields")),
+    ...(shown.length < types.length ? { "left-out": types.length - shown.length,
+      help: ["Run `ado-axi work-item link types --full` for all link types"] } : {}),
+  };
 }
 
 async function listLinks(args: ReturnType<typeof parseArgs>): Promise<Record<string, unknown>> {
