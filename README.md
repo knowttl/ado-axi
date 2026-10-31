@@ -1,5 +1,7 @@
 # ado-axi (Azure DevOps axi)
 
+This is a fork of [jeffreyhaen/ado-axi](https://github.com/jeffreyhaen/ado-axi), maintained at [knowttl/ado-axi](https://github.com/knowttl/ado-axi).
+
 [![ci](https://github.com/jeffreyhaen/ado-axi/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffreyhaen/ado-axi/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40jeffreyhaen%2Fado-axi.svg)](https://www.npmjs.com/package/@jeffreyhaen/ado-axi)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
