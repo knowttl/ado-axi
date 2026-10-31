@@ -1,12 +1,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { decode, encode } from "@toon-format/toon";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("../src/lib/auth.js", () => ({ resolveCredential: vi.fn(async () => ({ header: "Bearer synthetic" })) }));
 
 import { repoCommand, projectCommand } from "../src/commands/repo.js";
 import { pipelineCommand } from "../src/commands/pipeline.js";
@@ -72,10 +69,11 @@ let scratch: string;
 const fetchMock = vi.fn();
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), "ado-audit-"));
+  scratch = mkdtempSync(join(process.cwd(), ".ado-audit-"));
   const config = join(scratch, "config.json");
   writeFileSync(config, JSON.stringify({ profiles: { synthetic: { org: "synthetic-org", project: "SyntheticProject", auth: "pat" } } }));
   vi.stubEnv("ADO_AXI_CONFIG", config);
+  vi.stubEnv("ADO_AXI_PAT", "synthetic-placeholder");
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -124,7 +122,6 @@ describe("TD-064 bounded audit lists", () => {
 
   it.each([
     { command: teamCommand, argv: ["list"], row: team, source: "value", skip: "$skip", collection: "teams" },
-    { command: userCommand, argv: ["list"], row: user, source: "members", skip: "skip", collection: "users" },
   ])("counts offset pages for $collection", async ({ command, argv, row, source, skip, collection }) => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ [source]: Array.from({ length: 100 }, () => row) })));
     fetchMock.mockImplementationOnce(async (url: string) => {
@@ -134,6 +131,22 @@ describe("TD-064 bounded audit lists", () => {
     const result = await command([...argv, ...context, "--limit", "1"]);
     expect(result).toMatchObject({ count: `1 of 101 ${collection}`, omitted: 100 });
     expect(result[collection]).toHaveLength(1);
+  });
+
+  it.each([1, 100])("counts user continuation pages after %s members", async (pageSize) => {
+    respond("/synthetic-org/_apis/userentitlements", {
+      members: Array.from({ length: pageSize }, () => user), continuationToken: "next-users",
+    });
+    fetchMock.mockImplementationOnce(async (url: string) => {
+      const query = new URL(url).searchParams;
+      expect(query.get("continuationToken")).toBe("next-users");
+      expect(query.has("skip")).toBe(false);
+      expect(query.has("top")).toBe(false);
+      return new Response(JSON.stringify({ members: [user], continuationToken: null }));
+    });
+    expect(await userCommand(["list", ...context, "--limit", "1"])).toMatchObject({
+      count: `1 of ${pageSize + 1} users`, omitted: pageSize, users: [user],
+    });
   });
 
   it.each(["0", "-1", "1.5", "Infinity"])("rejects invalid limit %s before HTTP", async (limit) => {
@@ -194,12 +207,22 @@ describe("TD-064 audit details", () => {
     });
   });
 
-  it("bounds ACE dictionaries in full permission details", async () => {
+  it("preserves nested variable counts when selecting the collection", async () => {
+    respond("/synthetic-org/SyntheticProject/_apis/distributedtask/variablegroups", { value: [variableGroup] });
+    expect(await variableGroupCommand(["list", ...context, "--limit", "1", "--fields", "variables"])).toMatchObject({
+      "variable-groups": [{ variables: [{ name: "environment", value: "test" }], "variables-total": 3, "variables-omitted": 2 }],
+    });
+  });
+
+  it.each([
+    ["list"], ["show"], ["list", "--full"], ["show", "--full"],
+    ["list", "--fields", "acesDictionary"], ["show", "--full", "--fields", "acesDictionary"],
+  ])("preserves ACE counts alongside bounded dictionaries with %j", async (...argv) => {
     respond("/synthetic-org/_apis/accesscontrollists/synthetic-namespace", { value: [{ ...acl, acesDictionary: {
       "vssgp.synthetic": acl.acesDictionary["vssgp.synthetic"],
       "vssgp.other": { descriptor: "vssgp.other", allow: 4, deny: 0 },
     } }] });
-    expect(await securityCommand(["permission", "show", "--namespace", "synthetic-namespace", "--token", acl.token, ...context, "--limit", "1", "--full"])).toMatchObject({
+    expect(await securityCommand(["permission", ...argv, "--namespace", "synthetic-namespace", "--token", acl.token, ...context, "--limit", "1"])).toMatchObject({
       permissions: [{ acesDictionary: acl.acesDictionary, "aces-total": 2, "aces-omitted": 1 }],
     });
   });
@@ -225,6 +248,51 @@ describe("TD-064 audit details", () => {
     expect(await serviceEndpointCommand(["list", "--org", "synthetic-org", "--project", selected])).toMatchObject({
       endpoints: [{ id: "synthetic-endpoint", name: "Synthetic connection", type: "azurerm", isReady: true }],
     });
+  });
+});
+
+describe("audit CLI dispatch", () => {
+  it.each([
+    { command: "repo", group: "policy", action: ["list", "--repo", "synthetic-repo"],
+      path: "SyntheticProject/_apis/git/policy/configurations?repositoryId=synthetic-repo&api-version=7.1-preview.1",
+      body: { value: [policy] }, expected: { policies: [{ id: 7 }] } },
+    { command: "repo", group: "policy", action: ["show", "7"],
+      path: "SyntheticProject/_apis/policy/configurations/7?api-version=7.1",
+      body: policy, expected: { policy: { id: 7 } } },
+    { command: "pipeline", group: "variable-group", action: ["list"],
+      path: "SyntheticProject/_apis/distributedtask/variablegroups?api-version=7.1",
+      body: { value: [variableGroup] }, expected: { "variable-groups": [{ id: 4 }] } },
+    { command: "pipeline", group: "variable-group", action: ["show", "4"],
+      path: "SyntheticProject/_apis/distributedtask/variablegroups/4?api-version=7.1",
+      body: variableGroup, expected: { "variable-group": { id: 4 } } },
+    { command: "pipeline", group: "agent", action: ["list", "--pool", "2"],
+      path: "_apis/distributedtask/pools/2/agents?includeCapabilities=false&api-version=7.1",
+      body: { value: [agent] }, expected: { agents: [{ id: 3 }] } },
+    { command: "pipeline", group: "agent", action: ["show", "3", "--pool", "2"],
+      path: "_apis/distributedtask/pools/2/agents/3?includeCapabilities=false&api-version=7.1",
+      body: agent, expected: { agent: { id: 3 } } },
+    { command: "pipeline", group: "pool", action: ["list"],
+      path: "_apis/distributedtask/pools?api-version=7.1",
+      body: { value: [pool] }, expected: { pools: [{ id: 2 }] } },
+    { command: "pipeline", group: "pool", action: ["show", "2"],
+      path: "_apis/distributedtask/pools/2?api-version=7.1",
+      body: pool, expected: { pool: { id: 2 } } },
+    { command: "pipeline", group: "queue", action: ["list"],
+      path: "SyntheticProject/_apis/distributedtask/queues?api-version=7.1",
+      body: { value: [queue] }, expected: { queues: [{ id: 5 }] } },
+    { command: "pipeline", group: "queue", action: ["show", "5"],
+      path: "SyntheticProject/_apis/distributedtask/queues/5?api-version=7.1",
+      body: queue, expected: { queue: { id: 5 } } },
+  ])("preserves flags before $command $group $action", ({ command, group, action, path, body, expected }) => {
+    const fixture = join(scratch, "replay.json");
+    writeFileSync(fixture, JSON.stringify({ calls: [{ method: "GET", url: `https://dev.azure.com/synthetic-org/${path}`, status: 200, body: JSON.stringify(body) }] }));
+    const result = spawnSync(process.execPath, [
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), command, ...context, "--limit=1", group, ...action, "--full",
+    ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(decode(result.stdout)).toMatchObject(expected);
   });
 });
 

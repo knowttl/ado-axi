@@ -113,13 +113,24 @@ export function auditOutput(
   columns: readonly string[],
 ): AuditRecord {
   const safe = result.rows.map((row) => safeAudit(row, args) as AuditRecord);
-  const rows = flagBool(args, "full") ? safe : safe.map((row) =>
-    Object.fromEntries(columns.map((key) => [key, row[key] ?? ""])));
+  const selected = flagList(args, "fields");
+  const fields = selected?.length ? selected : (flagBool(args, "full") ? undefined : [...columns]);
+  const rows = pickFields(safe, fields);
+  for (const [index, row] of rows.entries()) {
+    const record = safe[index]!;
+    for (const [collection, prefix] of [["acesDictionary", "aces"], ["variables", "variables"]] as const) {
+      if (!(collection in row)) continue;
+      for (const suffix of ["total", "omitted"]) {
+        const key = `${prefix}-${suffix}`;
+        if (key in record) row[key] = record[key];
+      }
+    }
+  }
   const omitted = result.total - rows.length;
   return {
     count: `${rows.length} of ${result.total} ${name}`,
     omitted,
-    [name]: pickFields(rows, flagList(args, "fields")),
+    [name]: rows,
     ...(omitted > 0 ? { help: [`Pass --limit ${result.total} to include all ${name}; --full expands fields, not the limit`] } : {}),
   };
 }

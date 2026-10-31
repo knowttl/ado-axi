@@ -5,6 +5,11 @@ export interface ParsedArgs {
   positionals: string[];
 }
 
+export function argsToArgv(args: ParsedArgs): string[] {
+  return [...args.positionals, ...Object.entries(args.flags).map(([key, value]) =>
+    value === true ? `--${key}` : `--${key}=${value}`)];
+}
+
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const flags: Record<string, string | boolean> = {};
   const positionals: string[] = [];

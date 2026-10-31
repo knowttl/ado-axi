@@ -5,7 +5,7 @@ Pass `--org`, `--project`, or `--profile` as for other commands.
 Lists default to `--limit 100`; the limit must be a positive integer.
 Every list reports `count: N of T <collection>` and `omitted: T-N`, including empty lists.
 All server pages are counted, while at most the requested number of top-level records are retained.
-Team and user entitlement APIs use offset pagination; other paged audit APIs use continuation tokens.
+Team APIs use offset pagination; user entitlement and other paged audit APIs use continuation tokens.
 
 | Command | Required selectors | Scope |
 | --- | --- | --- |

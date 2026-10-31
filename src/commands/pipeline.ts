@@ -1,5 +1,5 @@
 import { AxiError } from "axi-sdk-js";
-import { assertKnownFlags, flagBool, flagList, flagNumber, flagString, parseArgs } from "../lib/args.js";
+import { argsToArgv, assertKnownFlags, flagBool, flagList, flagNumber, flagString, parseArgs } from "../lib/args.js";
 import { request } from "../lib/client.js";
 import { requireProject } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
@@ -45,13 +45,13 @@ export async function pipelineCommand(argv: string[]): Promise<Record<string, un
 
   switch (sub) {
     case "variable-group":
-      return variableGroupCommand(argv.slice(1));
+      return variableGroupCommand(argsToArgv(rest));
     case "agent":
-      return agentCommand(argv.slice(1));
+      return agentCommand(argsToArgv(rest));
     case "pool":
-      return poolCommand(argv.slice(1));
+      return poolCommand(argsToArgv(rest));
     case "queue":
-      return queueCommand(argv.slice(1));
+      return queueCommand(argsToArgv(rest));
     case "show":
       return showDefinition(rest, false);
     case "variable": {

@@ -1,5 +1,5 @@
 import { AxiError } from "axi-sdk-js";
-import { assertKnownFlags, flagBool, flagList, flagNumber, flagString, parseArgs } from "../lib/args.js";
+import { argsToArgv, assertKnownFlags, flagBool, flagList, flagNumber, flagString, parseArgs } from "../lib/args.js";
 import { request } from "../lib/client.js";
 import { requireProject } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
@@ -29,7 +29,7 @@ export async function repoCommand(argv: string[]): Promise<Record<string, unknow
 
   switch (sub) {
     case "policy":
-      return policyCommand(argv.slice(1));
+      return policyCommand(argsToArgv(rest));
     case "show": {
       assertKnownFlags(rest, ["id", "repo", "limit"], "repo show");
       auditLimit(rest);
