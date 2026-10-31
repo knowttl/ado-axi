@@ -23,6 +23,7 @@ beforeEach(() => {
   writeFileSync(config, JSON.stringify({ profiles: { synthetic: { org: "synthetic-org", project: "SyntheticProject", auth: "pat" } } }));
   vi.stubEnv("ADO_AXI_CONFIG", config);
   vi.stubEnv("ADO_AXI_PAT", "synthetic-placeholder");
+  vi.stubEnv("ADO_AXI_WRITES", "1");
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -31,6 +32,25 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   rmSync(scratch, { recursive: true, force: true });
+});
+
+describe("reads with writes disabled", () => {
+  it.each([
+    { argv: ["api", "GET", "_apis/projects"], method: "GET", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/projects?api-version=7.1", body: { count: 0, value: [] }, expected: { count: 0, value: [] } },
+    { argv: ["work-item", "list"], method: "POST", url: "https://dev.azure.com/synthetic-org/SyntheticProject/_apis/wit/wiql?%24top=30&api-version=7.1", body: { workItems: [] }, expected: { "work-items": expect.stringContaining("0 work items found") } },
+  ])("allows $method reads through the CLI", ({ argv, method, url, body, expected }) => {
+    const fixture = join(scratch, "read-replay.json");
+    writeFileSync(fixture, JSON.stringify({ calls: [
+      { method, url, status: 200, body: JSON.stringify(body) },
+    ] }));
+    const result = spawnSync(process.execPath, [
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv, ...context,
+    ], { encoding: "utf8", timeout: 10_000, input: "", env: { ...process.env, ADO_AXI_WRITES: undefined, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(decode(result.stdout)).toMatchObject(expected);
+  });
 });
 
 describe("TD-068 work-item delete", () => {

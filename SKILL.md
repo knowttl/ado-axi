@@ -122,8 +122,10 @@ It reads and compares the revision immediately before DELETE, refusing stale rev
 This guard is not atomic: another writer can change the item between the read and DELETE.
 
 Work-item writes are `create`, `update`, `delete` (including `--destroy`), `comment`, `link add`, and `link remove`.
-They execute immediately; hosts must keep them disabled unless writes are enabled.
-There is no local write-enable switch.
+BREAKING CHANGE: writes default off; set `ADO_AXI_WRITES=1` to enable them.
+The same gate covers PR mutations, `pipeline run`, `ref create|delete`, and `config init|add` before any request or local write.
+Raw `api` methods other than GET, HEAD, and OPTIONS also require enablement, including implicit POST from a body or piped stdin.
+Disabled writes return `WRITES_DISABLED` with an enablement hint; native reads (including WIQL) and help remain available.
 
 `list` builds WIQL for you; drop to `--query` for anything the flags do not express.
 `--description-format markdown` renders a Markdown description; use `html` only when supplying HTML. The format is only applied when a description is supplied.

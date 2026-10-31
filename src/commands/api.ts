@@ -6,6 +6,7 @@ import { resolveProfile } from "../lib/config.js";
 import { profileFromArgs } from "../lib/context.js";
 import { truncate } from "../lib/format.js";
 import { readStdinIfPiped } from "../lib/stdin.js";
+import { assertWritesEnabled } from "../lib/writes.js";
 
 const API_FLAGS = [
   "method",
@@ -143,6 +144,7 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
     raw: flagBool(args, "raw"),
   };
 
+  assertWritesEnabled(!["GET", "HEAD", "OPTIONS"].includes(options.method));
   const url = buildUrl(profile, options);
   const result = await request<unknown>(profile, options);
 

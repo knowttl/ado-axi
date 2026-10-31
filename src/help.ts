@@ -61,6 +61,7 @@ const AUDIT_HELP: Record<string, string[]> = {
 };
 
 export const TOP_LEVEL_HELP = [
+  "Writes default off: set ADO_AXI_WRITES=1 to enable mutations (including config init|add and raw API non-GET/HEAD/OPTIONS). Reads and help remain available.",
   "ado-axi                                  # dashboard: your work items, project-active PRs, recent runs",
   "ado-axi work-item list                   # open work items (WIQL under the hood)",
   "ado-axi work-item get <id>               # detail view [--comments] [--full]",
@@ -138,7 +139,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "                | --commit <40-hex> --repo <name> | --branch <name> --repo <name>)",
     '          [--comment "..."] [--if-rev <n>]  # duplicate links are reported as no-ops',
     "link remove <id> --index <n> --if-rev <n> # index and rev from link list; atomic revision guard",
-    "Writes: create, update, delete (including --destroy), comment, link add, link remove. These execute immediately; hosts must enable writes before exposing them.",
+    "Writes: create, update, delete (including --destroy), comment, link add, link remove. Default off; set ADO_AXI_WRITES=1 to enable.",
     "",
     "Examples:",
     "  ado-axi work-item list --assigned-to @me --state open",
@@ -330,3 +331,8 @@ for (const [command, lines] of Object.entries(AUDIT_HELP)) {
     "API error details are withheld to protect credentials. Empty lists report 0 of 0 and omitted: 0.",
   ].join("\n");
 }
+
+for (const command of ["pr", "pipeline", "ref", "config", "api"]) {
+  COMMAND_HELP[command] += "\nWrites default off: set ADO_AXI_WRITES=1 to enable mutations. Reads and help remain available.";
+}
+COMMAND_HELP.api += "\nRaw API methods other than GET, HEAD, and OPTIONS require enablement, including implicit POST from a body or piped stdin.";

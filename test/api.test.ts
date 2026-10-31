@@ -26,6 +26,7 @@ beforeEach(() => {
   vi.stubEnv("ADO_AXI_CONFIG", file);
   vi.stubEnv("ADO_AXI_ORG", "other-org");
   vi.stubEnv("ADO_AXI_PROJECT", "Environment Project");
+  vi.stubEnv("ADO_AXI_WRITES", "1");
   mockCredential.mockClear();
   mockFetch.mockReset();
   mockFetch.mockResolvedValue(new Response(JSON.stringify({ value: [] }), { status: 200 }));
