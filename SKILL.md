@@ -303,13 +303,7 @@ ado-axi wiki page update --wiki <id|name> --path <page> (--content <text> | --fi
 ```
 
 Wiki list and page get work with writes disabled; page create/update require `ADO_AXI_WRITES=1`.
-Create prechecks absence and refuses existing pages.
-Update reads the page ETag and sends it in the `If-Match` header; optional `--if-match` also rejects a stale caller version before PUT.
-Copy ETag values exactly, including their quotes.
-Page reads preview 4000 characters by default, report the original character count and ETag, and offer `--full` when truncated.
-Page content is returned verbatim, subject to preview truncation.
-Lists stay bounded under `--full` and report omitted rows.
-See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for TD-065 slice 4 of 4, which completes TD-065's staged delivery with the documented artifact upload limitation.
+See [wiki commands](https://github.com/knowttl/ado-axi/blob/main/doc/wiki.md) for content output, list limits, creation safety, exact ETag handling, and TD-065 delivery scope.
 
 ## Escape hatch
 

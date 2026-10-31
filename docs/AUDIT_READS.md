@@ -46,6 +46,8 @@ Nested arrays and variable collections are also bounded by `--limit`; truncated 
 Default text previews are limited to 1,200 characters; use `--full` for complete text.
 Secret variable values are always `***`, including in nested variable groups and build definitions.
 Authorization, credential, password, token credential, certificate, provider-data, and capability fields are masked recursively.
+Parseable structured URL fields (keys ending in `url` or `uri`, or named `href`, case-insensitively) have username and password removed using URL parsing before preview truncation and field selection.
+Query parameters and fragments remain unchanged; free-text content is not scanned for URLs.
 Endpoint authorization, data, and URLs are always withheld because their free-form values can embed credentials.
 API failure messages and suggestions never include the untrusted server response, which can echo secrets.
 

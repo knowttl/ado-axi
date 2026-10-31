@@ -219,8 +219,7 @@ detail lives, alongside the agent-facing guide in [SKILL.md](SKILL.md).
 Audit reads cover repository policies, security groups and permissions, service endpoints, variable groups, pipeline variables and definitions, agents, pools, queues, users, teams, projects, and repositories.
 Lists use TOON, default to `--limit 100`, and report both the total and how many records were omitted.
 `--full` expands fields without lifting collection limits or revealing secret variables, service connection credentials, or agent capabilities.
-Audit output strips userinfo from structured URL fields using URL parsing.
-Free-text content is not scanned for URLs.
+See [audit read output rules](docs/AUDIT_READS.md) for structured URL handling and masking limits.
 
 ```sh
 ado-axi repo policy list --repo <repository-id> --limit 10
