@@ -27,7 +27,7 @@ if (!org) {
   process.exit(2);
 }
 
-const HELP_COMMANDS = ["work-item", "query", "area", "iteration", "pr", "pipeline", "repo", "ref", "test", "project", "api", "security", "service-endpoint", "variable-group", "agent", "pool", "queue", "user", "team"];
+const HELP_COMMANDS = ["work-item", "query", "area", "iteration", "pr", "pipeline", "repo", "wiki", "ref", "test", "project", "api", "security", "service-endpoint", "variable-group", "agent", "pool", "queue", "user", "team"];
 
 const child = entry
   ? spawn(process.execPath, [entry, org], { stdio: ["pipe", "pipe", "inherit"] })

@@ -68,7 +68,7 @@ function unknownCommand(command: string): string {
     error: `unknown command \`${command}\``,
     code: "VALIDATION_ERROR",
     help: [
-      "Commands: work-item | query | area | iteration | pr | pipeline | test | repo | ref | project | security | service-endpoint | variable-group | agent | pool | queue | user | team | api | doctor | config",
+      "Commands: work-item | query | area | iteration | pr | pipeline | test | repo | ref | wiki | project | security | service-endpoint | variable-group | agent | pool | queue | user | team | api | doctor | config",
       "Run `ado-axi --help` for the full command surface",
       "Run `ado-axi` with no arguments for the dashboard",
     ],
@@ -105,6 +105,10 @@ async function projectHandler(args: string[]) {
 
 async function repoHandler(args: string[]) {
   return (await import("../commands/repo.js")).repoCommand(args);
+}
+
+async function wikiHandler(args: string[]) {
+  return (await import("../commands/wiki.js")).wikiCommand(args);
 }
 
 async function testHandler(args: string[]) {
@@ -208,6 +212,7 @@ await runAxiCli({
     tests: testHandler,
     repo: repoHandler,
     repos: repoHandler,
+    wiki: wikiHandler,
     ref: refHandler,
     refs: refHandler,
     project: projectHandler,

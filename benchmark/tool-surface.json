@@ -10,6 +10,7 @@
     "pr",
     "pipeline",
     "repo",
+    "wiki",
     "ref",
     "test",
     "project",
@@ -24,6 +25,10 @@
     "team"
   ],
   "auditCommands": [
+    ["wiki", "list"],
+    ["wiki", "page", "get", "--wiki", "synthetic-wiki", "--path", "/Home"],
+    ["wiki", "page", "create", "--wiki", "synthetic-wiki", "--path", "/Home", "--content", "Synthetic page"],
+    ["wiki", "page", "update", "--wiki", "synthetic-wiki", "--path", "/Home", "--content", "Updated page"],
     ["repo", "create", "--name", "SyntheticRepo"],
     ["repo", "update", "--repo", "SyntheticRepo", "--default-branch", "main"],
     ["repo", "delete", "--repo", "SyntheticRepo", "--confirm-delete"],

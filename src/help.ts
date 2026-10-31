@@ -101,6 +101,8 @@ export const TOP_LEVEL_HELP = [
   "ado-axi repo list                        # repositories [--name <filter>]",
   "ado-axi repo create|update|delete|import # all mutations require ADO_AXI_WRITES=1",
   "ado-axi repo policy create|update|delete # configurations; revision prechecks and confirmed deletion",
+  "ado-axi wiki list [--limit 100]         # project and code wikis",
+  "ado-axi wiki page get|create|update --wiki <id|name> --path <page> # updates use ETag guards",
   "ado-axi repo branches --repo <name>",
   "ado-axi repo file <path> --repo <name>   # file content at a branch or commit [--ref] [--commit]",
   "ado-axi ref list|create|delete --repo <name>",
@@ -313,6 +315,24 @@ export const COMMAND_HELP: Record<string, string> = {
     "  ado-axi repo policy update 7 --policy-json '{\"isEnabled\":false}' --if-rev 3",
     "  ado-axi repo file /src/Program.cs --repo Web --ref feature/x --limit 80",
   ].join("\n"),
+  wiki: [
+    "ado-axi wiki <list|page>",
+    "",
+    "list [--limit 100] [--full] [--fields id,name,type] # full expands fields, not the row limit",
+    "page get --wiki <id|name> --path <page> [--full] # content preview (4000 chars), total chars, and ETag",
+    "page create --wiki <id|name> --path <page> (--content <text> | --file <utf8-markdown>) # prechecks absence; never overwrites",
+    "page update --wiki <id|name> --path <page> (--content <text> | --file <utf8-markdown>) [--if-match <etag>]",
+    "  Update reads the current ETag and sends it in If-Match; --if-match additionally checks a caller's earlier ETag.",
+    "  Copy ETag values exactly, including quotes; stale or missing tags refuse, and conflicts are not retried.",
+    "  Credential-bearing and signed links are masked in read output, including --full; stored content is unchanged.",
+    "  --config <profile-file>, --profile, --org, and --project select context and are preserved in follow-up hints.",
+    "",
+    "Examples:",
+    "  ado-axi wiki list --limit 20",
+    "  ado-axi wiki page get --wiki <id> --path /Home --full",
+    "  ado-axi wiki page create --wiki <id> --path /Home --file ./Home.md",
+    "  ado-axi wiki page update --wiki <id> --path /Home --content '# Updated page'",
+  ].join("\n"),
   ref: [
     "ado-axi ref <list|create|delete>",
     "",
@@ -340,7 +360,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "When --body is omitted and stdin is piped, stdin is sent as the raw request body (use --content-type as needed).",
     "",
     "Examples:",
-    "  ado-axi api _apis/wiki/wikis",
+    "  ado-axi api _apis/testplan/plans --query 'filterActivePlans=true'",
     "  ado-axi api 'https://vsrm.dev.azure.com/acme/Platform/_apis/release/releases?api-version=7.1'",
     "  ado-axi api _apis/testplan/plans --query 'filterActivePlans=true'",
     "  ado-axi api POST _apis/search/codesearchresults --host almsearch --body '{\"searchText\":\"TODO\"}'",
@@ -382,7 +402,7 @@ for (const [command, lines] of Object.entries(AUDIT_HELP)) {
   ].join("\n");
 }
 
-for (const command of ["pr", "pipeline", "repo", "ref", "config", "api"]) {
+for (const command of ["pr", "pipeline", "repo", "ref", "wiki", "config", "api"]) {
   COMMAND_HELP[command] += "\nWrites default off: set ADO_AXI_WRITES=1 to enable mutations. Reads and help remain available.";
 }
 COMMAND_HELP.api += "\nRaw API methods other than GET, HEAD, and OPTIONS require enablement, including implicit POST from a body or piped stdin.";
