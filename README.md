@@ -1,6 +1,7 @@
 # ado-axi (Azure DevOps axi)
 
-[![ci](https://github.com/jeffreyhaen/ado-axi/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffreyhaen/ado-axi/actions/workflows/ci.yml)
+This is a fork of [jeffreyhaen/ado-axi](https://github.com/jeffreyhaen/ado-axi), maintained at [knowttl/ado-axi](https://github.com/knowttl/ado-axi).
+
 [![npm](https://img.shields.io/npm/v/%40jeffreyhaen%2Fado-axi.svg)](https://www.npmjs.com/package/@jeffreyhaen/ado-axi)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
@@ -180,19 +181,9 @@ pnpm test
 
 ### Releasing
 
-1. Move the `Unreleased` section in `CHANGELOG.md` under `## [x.y.z] - <date>`.
-2. Bump `version` in `package.json`.
-3. Commit as `chore: release vX.Y.Z`, then tag and push:
-
-```sh
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push --follow-tags
-```
-
-Pushing the tag runs `.github/workflows/release.yml`: it builds, tests, publishes to
-npm, and creates the GitHub release with the matching `CHANGELOG.md` section as its body
-(`scripts/release-notes.mjs`). An existing release is left as is, so the workflow can be
-re-run safely.
+The `.github/workflows/release-please.yml` workflow manages release pull requests from conventional commits on `main`.
+Merging a release pull request creates the tag and GitHub release, then builds and tests that tag before publishing the packed tarball to npm using OIDC trusted publishing with provenance.
+GitHub Actions checks run only for release publication; run the development checks locally for other changes.
 
 ## License
 
