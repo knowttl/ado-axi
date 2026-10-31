@@ -10,7 +10,7 @@ Agent-ergonomic CLI over the Azure DevOps REST API. Multiple organizations are h
 profiles; each profile carries its own org, project, and authentication (Azure CLI login or a
 personal access token).
 
-Install globally for normal use with `npm install -g @jeffreyhaen/ado-axi`. If `ado-axi` is not on PATH, prefix commands with `npx -y @jeffreyhaen/ado-axi`.
+Install globally for normal use with `npm install -g @knowttl/ado-axi`. If `ado-axi` is not on PATH, prefix commands with `npx -y @knowttl/ado-axi`.
 
 ## Orientation
 

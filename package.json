@@ -1,5 +1,5 @@
 {
-  "name": "@jeffreyhaen/ado-axi",
+  "name": "@knowttl/ado-axi",
   "version": "0.4.8",
   "description": "Agent-ergonomic CLI for Azure DevOps — work items, pull requests, and pipelines through token-efficient TOON output. An AXI (Agent eXperience Interface) over the Azure DevOps REST API.",
   "keywords": [
@@ -15,13 +15,13 @@
   ],
   "license": "MIT",
   "author": "Jeffrey Haen",
-  "homepage": "https://github.com/jeffreyhaen/ado-axi",
+  "homepage": "https://github.com/knowttl/ado-axi#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jeffreyhaen/ado-axi.git"
+    "url": "git+https://github.com/knowttl/ado-axi.git"
   },
   "bugs": {
-    "url": "https://github.com/jeffreyhaen/ado-axi/issues"
+    "url": "https://github.com/knowttl/ado-axi/issues"
   },
   "type": "module",
   "bin": {
