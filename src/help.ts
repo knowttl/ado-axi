@@ -99,6 +99,8 @@ export const TOP_LEVEL_HELP = [
   "ado-axi pipeline watch <run-id>          # [--interval 10] [--timeout 1800]",
   "ado-axi test results <run-id>            # failed tests of a pipeline run [--outcome all]",
   "ado-axi repo list                        # repositories [--name <filter>]",
+  "ado-axi repo create|update|delete|import # all mutations require ADO_AXI_WRITES=1",
+  "ado-axi repo policy create|update|delete # configurations; revision prechecks and confirmed deletion",
   "ado-axi repo branches --repo <name>",
   "ado-axi repo file <path> --repo <name>   # file content at a branch or commit [--ref] [--commit]",
   "ado-axi ref list|create|delete --repo <name>",
@@ -284,9 +286,20 @@ export const COMMAND_HELP: Record<string, string> = {
     "  ado-axi test results 98231 --outcome all --limit 50",
   ].join("\n"),
   repo: [
-    "ado-axi repo <list|branches|file>",
+    "ado-axi repo <list|show|branches|file|create|update|delete|import|policy>",
     "",
     "list     [--name <filter>] [--limit 200]",
+    "create   --name <name> # create in selected project",
+    "update   --repo <id|name> [--name <name>] [--default-branch <branch>] [--disabled true|false]",
+    "delete   --repo <id|name> --confirm-delete # existence precheck, then delete by resolved id",
+    "import   --repo <id|name> --source-url <https-git-url> [--service-endpoint <id>] # queues an import into an existing empty repository",
+    "  Source URLs must not include credentials, queries, or fragments; use a service endpoint for authentication.",
+    "policy create --policy-json '<JSON object>' # type.id GUID, settings object, isEnabled/isBlocking booleans",
+    "policy update <id> --policy-json '<changed fields JSON object>' [--if-rev <n>] # sends fetched revision",
+    "policy delete <id> --if-rev <n> --confirm-delete # revision precheck; DELETE has no atomic guard",
+    "  --config <path> selects the profile file; --profile <name> selects a saved profile.",
+    "  Policy JSON accepts type, settings, isEnabled, isBlocking; omit id/revision. Nested settings are replaced as a whole.",
+    "  Repository PATCH/DELETE and policy DELETE have no documented atomic revision predicate; prechecks have a race window.",
     "branches --repo <name> [--name <filter>] [--limit 50]",
     "file     <path> --repo <name> [--ref <branch> | --commit <40-hex>] [--limit <lines>] [--full]",
     "",
@@ -295,6 +308,9 @@ export const COMMAND_HELP: Record<string, string> = {
     "",
     "Examples:",
     "  ado-axi repo file /src/Program.cs --repo Web",
+    "  ado-axi repo create --name SyntheticRepo",
+    "  ado-axi repo update --repo SyntheticRepo --default-branch main",
+    "  ado-axi repo policy update 7 --policy-json '{\"isEnabled\":false}' --if-rev 3",
     "  ado-axi repo file /src/Program.cs --repo Web --ref feature/x --limit 80",
   ].join("\n"),
   ref: [
@@ -366,7 +382,7 @@ for (const [command, lines] of Object.entries(AUDIT_HELP)) {
   ].join("\n");
 }
 
-for (const command of ["pr", "pipeline", "ref", "config", "api"]) {
+for (const command of ["pr", "pipeline", "repo", "ref", "config", "api"]) {
   COMMAND_HELP[command] += "\nWrites default off: set ADO_AXI_WRITES=1 to enable mutations. Reads and help remain available.";
 }
 COMMAND_HELP.api += "\nRaw API methods other than GET, HEAD, and OPTIONS require enablement, including implicit POST from a body or piped stdin.";

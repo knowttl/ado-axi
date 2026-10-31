@@ -6,6 +6,7 @@ import { profileFromArgs } from "../lib/context.js";
 import { countLine, pickFields, shortDate, truncate } from "../lib/format.js";
 import { normalizeRepositoryPath } from "../lib/repositoryPath.js";
 import { policyCommand } from "./policy.js";
+import { repoAdminCommand } from "./repoAdmin.js";
 import { assertAuditPositionals, auditId, auditLimit, auditRequest, safeAudit } from "../lib/audit.js";
 
 const REPO_LIST_FLAGS = ["name", "limit"];
@@ -28,10 +29,16 @@ export async function repoCommand(argv: string[]): Promise<Record<string, unknow
   const rest = { ...args, positionals: args.positionals.slice(1) };
 
   switch (sub) {
+    case "create":
+    case "update":
+    case "delete":
+    case "import":
+      return repoAdminCommand(argv);
     case "policy":
+      if (["create", "update", "delete"].includes(rest.positionals[0] ?? "")) return repoAdminCommand(argv);
       return policyCommand(argsToArgv(rest));
     case "show": {
-      assertKnownFlags(rest, ["id", "repo", "limit"], "repo show");
+      assertKnownFlags(rest, ["config", "id", "repo", "limit"], "repo show");
       auditLimit(rest);
       assertAuditPositionals(rest, 1);
       const profile = profileFromArgs(rest);

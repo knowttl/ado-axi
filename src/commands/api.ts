@@ -9,6 +9,7 @@ import { readStdinIfPiped } from "../lib/stdin.js";
 import { assertWritesEnabled } from "../lib/writes.js";
 
 const API_FLAGS = [
+  "config",
   "method",
   "body",
   "query",
@@ -78,6 +79,7 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
 
   const profile = apiUrl
     ? resolveProfile({
+        config: flagString(args, "config"),
         profile: flagString(args, "profile"),
         org: flagString(args, "profile") ? undefined : apiUrl.org,
         project: apiUrl.project,

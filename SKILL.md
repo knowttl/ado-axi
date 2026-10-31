@@ -273,7 +273,16 @@ ado-axi repo file <path> --repo <name> [--ref <branch> | --commit <40-hex>] [--l
 ado-axi ref list --repo <name> [--name <prefix>] [--limit 50] [--full]
 ado-axi ref create --repo <name> --name <branch> (--source <branch> | --source-object-id <40-hex>)
 ado-axi ref delete --repo <name> --name <branch> [--old-object-id <40-hex>]
+ado-axi repo create --name <name>
+ado-axi repo update --repo <id|name> [--name <name>] [--default-branch <branch>] [--disabled true|false]
+ado-axi repo delete --repo <id|name> --confirm-delete
+ado-axi repo import --repo <id|name> --source-url <https-git-url> [--service-endpoint <id>]
+ado-axi repo policy create --policy-json '<JSON object>'
+ado-axi repo policy update <id> --policy-json '<changed fields JSON object>' [--if-rev <n>]
+ado-axi repo policy delete <id> --if-rev <n> --confirm-delete
 ```
+
+See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for write enablement, profile selection, policy JSON, import authentication, output masking, and concurrency limits.
 
 `repo file` reads a single file straight from Azure DevOps: the default branch, a branch tip
 (`--ref`), or an exact revision (`--commit`). Use it for files outside the working copy — another

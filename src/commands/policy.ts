@@ -8,7 +8,7 @@ export async function policyCommand(argv: string[]): Promise<AuditRecord> {
   const args = parseArgs(argv);
   const sub = args.positionals.shift() ?? "list";
   if (!["list", "show"].includes(sub)) throw new AxiError("Use repo policy list|show", "VALIDATION_ERROR");
-  assertKnownFlags(args, sub === "list" ? ["repo", "branch", "limit"] : ["id", "limit"], `repo policy ${sub}`);
+  assertKnownFlags(args, sub === "list" ? ["config", "repo", "branch", "limit"] : ["config", "id", "limit"], `repo policy ${sub}`);
   const limit = auditLimit(args);
   assertAuditPositionals(args, sub === "show" ? 1 : 0);
   const profile = profileFromArgs(args);

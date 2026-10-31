@@ -1,0 +1,17 @@
+{
+  "defaultProfile": "default",
+  "profiles": {
+    "default": {
+      "org": "synthetic-org",
+      "project": "SyntheticProject",
+      "auth": "pat",
+      "patEnv": "ADO_AXI_PAT"
+    },
+    "named": {
+      "org": "named-org",
+      "project": "NamedProject",
+      "auth": "pat",
+      "patEnv": "ADO_AXI_PAT"
+    }
+  }
+}

@@ -10,7 +10,7 @@ This is a fork of [jeffreyhaen/ado-axi](https://github.com/jeffreyhaen/ado-axi),
   <img src="assets/ado-axi-header.png" alt="ado-axi for Azure DevOps">
 </p>
 
-Agent-ergonomic CLI for **Azure DevOps** — work items, pull requests, Git refs, pipelines,
+Agent-ergonomic CLI for **Azure DevOps** - work items, pull requests, repositories, Git refs, pipelines,
 and a raw REST escape hatch, in token-efficient [TOON](https://toonformat.dev/) output.
 
 `ado-axi` is an Azure DevOps [AXI](https://github.com/kunchenguid/axi) (Agent eXperience Interface): a CLI
@@ -129,6 +129,9 @@ ado-axi pr abandon 812
 ado-axi pr approve 812
 ado-axi repo file /src/Program.cs --repo Web --ref main
 ado-axi ref list --repo Web --limit 50
+ado-axi repo create --name SyntheticRepo
+ado-axi repo update --repo SyntheticRepo --default-branch main
+ado-axi repo policy update 7 --policy-json '{"isEnabled":false}' --if-rev 3
 ado-axi ref create --repo Web --name feature/agent --source main
 ado-axi ref delete --repo Web --name feature/agent --old-object-id <40-hex>
 ado-axi pipeline runs --result failed
@@ -174,7 +177,9 @@ Unknown aliases and API-rejected reference names produce errors.
   Downloads cap at 100 MiB, report byte counts, and never overwrite without `--force`.
   Artifact reads/downloads and release list/show work with writes disabled; release create requires `ADO_AXI_WRITES=1`.
   See [artifacts and releases](https://github.com/knowttl/ado-axi/blob/main/doc/artifacts-releases.md) for commands, deployment behavior, and the artifact upload limitation.
-- **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item and PR mutations, pipeline mutations, `ref create|delete`, and `config init|add`.
+- **Repository and policy administration (TD-065 slice 3 of 4).** Repository create/update/delete/import and policy create/update/delete use the same default-off write boundary.
+  See [repository administration](https://github.com/knowttl/ado-axi/blob/main/doc/repository-admin.md) for JSON policy settings, revision behavior, import authentication, and concurrency limits.
+- **BREAKING CHANGE: writes default off.** Set `ADO_AXI_WRITES=1` to enable work-item, PR, pipeline, repository, and policy mutations, `ref create|delete`, and `config init|add`.
   Without that exact value, the CLI refuses these commands before any request or local write with code `WRITES_DISABLED` and an enablement hint.
   Raw `api` requests also require enablement for methods other than GET, HEAD, and OPTIONS, including implicit POST from a body or piped stdin.
   Native read commands, including WIQL queries, and help remain available without enablement.
