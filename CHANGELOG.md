@@ -3,6 +3,59 @@
 All notable changes to ado-axi are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0](https://github.com/knowttl/ado-axi/compare/v0.4.8...v0.5.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* add work-item deletion and link removal with opt-in writes ([#6](https://github.com/knowttl/ado-axi/issues/6))
+
+### Features
+
+* add Boards query and classification read commands ([#4](https://github.com/knowttl/ado-axi/issues/4)) ([6745d7f](https://github.com/knowttl/ado-axi/commit/6745d7fc5afe82104a0e25aa4413ae7c3b10c6b5))
+* add bounded Azure DevOps audit reads with secret masking ([#5](https://github.com/knowttl/ado-axi/issues/5)) ([e7e52d0](https://github.com/knowttl/ado-axi/commit/e7e52d0582d6bc8d9db06ae2bb4d5bcad032d613))
+* add pipeline administration commands ([#8](https://github.com/knowttl/ado-axi/issues/8)) ([30fc429](https://github.com/knowttl/ado-axi/commit/30fc429fd3b9061337f342d046d6203eb78a6915))
+* add pipeline artifact downloads and Classic releases ([#9](https://github.com/knowttl/ado-axi/issues/9)) ([477d335](https://github.com/knowttl/ado-axi/commit/477d3353770965a6f4f2f3c6b5ac218690978261))
+* add repository and policy administration commands ([#10](https://github.com/knowttl/ado-axi/issues/10)) ([420d4d8](https://github.com/knowttl/ado-axi/commit/420d4d8a4f4402a51a4d92d3faaba0c8ef2d9bc7))
+* add work-item attachment uploads and downloads ([#7](https://github.com/knowttl/ado-axi/issues/7)) ([1cd466d](https://github.com/knowttl/ado-axi/commit/1cd466d235d4c1b230c77432cb149f8fd2b75de0))
+* add work-item deletion and link removal with opt-in writes ([#6](https://github.com/knowttl/ado-axi/issues/6)) ([72042f2](https://github.com/knowttl/ado-axi/commit/72042f26246cfe109cbbbdbae1266bb37b0090f3))
+* ado-axi 0.2.0 - AXI CLI for Azure DevOps ([8be3ddd](https://github.com/knowttl/ado-axi/commit/8be3ddd56dd1f4796eb7095a21a06b6eb33bd0ea))
+* deepen PR ref and pipeline workflows ([21203b0](https://github.com/knowttl/ado-axi/commit/21203b0b1d47ae41cb45e3fdac2cd25d3bc1e558))
+* **pipeline:** add timeline and failed-only log triage ([03213b6](https://github.com/knowttl/ado-axi/commit/03213b645d26474ba0f7032a809a6cdb0aef16b5))
+* **pr:** manage review comment threads ([3d4399b](https://github.com/knowttl/ado-axi/commit/3d4399be932729a616c3df5c13363c2211cca400))
+* **repo:** read a single file at a branch or commit ([1f91112](https://github.com/knowttl/ado-axi/commit/1f911127f8c389bda49f527fdf68d1315dc8c78a))
+* store work item comments as Markdown ([dacdcf9](https://github.com/knowttl/ado-axi/commit/dacdcf98b6b64b29bd14f3282c5bbf84edb2949f))
+* support abandoning draft pull requests ([5e1a562](https://github.com/knowttl/ado-axi/commit/5e1a56219664552753e506ce8d73482c907aa44c))
+* support Markdown work item descriptions ([d35e7a1](https://github.com/knowttl/ado-axi/commit/d35e7a1b244f3de69748868e120b88beba34a1d2))
+* support safe Azure DevOps URLs ([b41c63b](https://github.com/knowttl/ado-axi/commit/b41c63b1e9a99d6d6e0cdd0b21ffd65535c856cf))
+* **test:** add test results for pipeline runs ([75aa3ce](https://github.com/knowttl/ado-axi/commit/75aa3cecd3c645c0390dd2ccb0e4719768e1f767))
+* **work-item:** compare-and-swap updates, tag mutation, json-patch escape hatch ([f71b8dc](https://github.com/knowttl/ado-axi/commit/f71b8dc8179bb23371f8e811337ad76a1cd69bd5))
+* **work-item:** list and add work item links ([d5f6047](https://github.com/knowttl/ado-axi/commit/d5f6047b23370d355096e9d599148579fee9c15d))
+
+
+### Bug Fixes
+
+* correct test summaries and enforce pipeline watch deadlines ([9a360d7](https://github.com/knowttl/ado-axi/commit/9a360d75b86a521c5dd27ff7332a4f1ffb253d2a))
+* correct work-item counts, field selection, and full details ([#3](https://github.com/knowttl/ado-axi/issues/3)) ([5e703b0](https://github.com/knowttl/ado-axi/commit/5e703b0297c478cbce86681bac422e094e60a1e1))
+* **help:** list pr thread in the pr subcommand line ([c0fe7ae](https://github.com/knowttl/ado-axi/commit/c0fe7ae8d55fabbd512a036e340bb8d0d1d242d7))
+* **pipeline:** read build logs as text/plain and ignore empty log ids ([7842cbc](https://github.com/knowttl/ado-axi/commit/7842cbc0d72a377644ee1cd59a91a4bebd280f28))
+* **pr:** honor --full for thread comments, add pr comments alias and --id flag ([6e830af](https://github.com/knowttl/ado-axi/commit/6e830afad3c63e5279306543c4d17b7e8759c95b))
+* **pr:** return the browsable pull request URL ([a479dea](https://github.com/knowttl/ado-axi/commit/a479dea29f65622a442dbb478ab8e23dba23e68e))
+* **pr:** use PR project in URL fallback ([d9171aa](https://github.com/knowttl/ado-axi/commit/d9171aa8558baa891fa921c0f39d974ecb5d8c17))
+* reject missing flag values and guard calculated tag updates ([e6c6000](https://github.com/knowttl/ado-axi/commit/e6c60002b540d8d20086d91cbf50518573568f57))
+* reject missing flag values and guard computed tag updates ([eadef70](https://github.com/knowttl/ado-axi/commit/eadef7077a0eca290f7685cbb6e9e0d99ea2cfe8))
+* reject non-JSON successful responses ([f94eb20](https://github.com/knowttl/ado-axi/commit/f94eb20e9526dbf63ad4bfb47f682a66973b29a9))
+* resolve az CLI via cross-spawn to fix Windows ENOENT false-negative ([9899a42](https://github.com/knowttl/ado-axi/commit/9899a42b81c7d009753830d088c4ebb6c66ca618))
+* restore repository paths converted by Git Bash ([0ee34e9](https://github.com/knowttl/ado-axi/commit/0ee34e997af8185ed9f65973f013d256d96a2aa0))
+* scope pull request lookups to the selected project ([5d21291](https://github.com/knowttl/ado-axi/commit/5d212918391c67a9e9288f17400a4a1352a66be4))
+* support piped request bodies ([a9cda8e](https://github.com/knowttl/ado-axi/commit/a9cda8e5fba9e5593acd99bb78981128094358d8))
+* treat empty piped stdin as absent ([e0c33a4](https://github.com/knowttl/ado-axi/commit/e0c33a4107ae2f5226482c802b5e44830f940050))
+
+
+### Performance Improvements
+
+* lazy-load command handlers for version fast path ([5b99762](https://github.com/knowttl/ado-axi/commit/5b997626c17a7798f8aea4ff31613e97886a3cc1))
+
 ## [Unreleased]
 
 ## [0.4.8] - 2026-10-30
