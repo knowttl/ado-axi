@@ -228,12 +228,7 @@ ado-axi pipeline timeline <run-id> [--limit 20] [--full]
 ado-axi pipeline watch <run-id> [--interval 10] [--timeout 1800]
 ```
 
-Pipeline mutations require `ADO_AXI_WRITES=1`; folder list stays read-only.
-Updates merge top-level JSON fields into the fetched definition and send its revision as an optimistic concurrency guard.
-Definition deletes require a revision precheck and confirmation; folder deletes require an existence precheck and confirmation.
-Neither DELETE has an atomic concurrency guard.
-`--full` expands folder fields without removing the row limit.
-See [pipeline administration](https://github.com/knowttl/ado-axi/blob/main/doc/pipeline-admin.md) for definition schemas, aliases, and examples (TD-065).
+See [pipeline administration](https://github.com/knowttl/ado-axi/blob/main/doc/pipeline-admin.md) for JSON definition requirements, revision guards, delete safety, tag aliases, folder limits, and examples (TD-065).
 
 `watch` uses seconds, refuses intervals below 2 seconds, and enforces its deadline across
 authentication, HTTP requests, and response bodies (30 minutes by default). Failed, cancelled,

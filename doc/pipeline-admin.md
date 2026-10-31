@@ -1,8 +1,6 @@
 # Pipeline administration (TD-065)
 
-All remote mutations default off.
-Set `ADO_AXI_WRITES=1` only for an authorized write.
-The shared command boundary refuses disabled writes before authentication or HTTP requests.
+Before running mutations, follow [write enablement](../README.md#behavior).
 
 ```sh
 ado-axi pipeline create --definition '{"name":"Synthetic CI","type":"build","queue":{"id":1},"repository":{"id":"11111111-1111-4111-8111-111111111111","type":"TfsGit"},"process":{"type":2,"yamlFilename":"azure-pipelines.yml"}}'
