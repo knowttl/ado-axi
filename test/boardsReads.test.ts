@@ -69,7 +69,8 @@ beforeEach(() => {
     if (url.pathname.endsWith("/workitems")) {
       const ids = url.searchParams.get("ids")!.split(",").map(Number);
       return Response.json({ count: ids.length, value: ids.map((id) => ({ id, rev: 1, fields: {
-        "System.Id": id, "System.WorkItemType": "Bug", "System.Title": `Synthetic bug ${id}`, "System.State": "Active",
+        "System.Id": id, "System.WorkItemType": "Bug", "System.Title": `Synthetic bug ${id}`,
+        "System.State": url.searchParams.get("asOf") === "2025-01-01T00:00:00Z" ? "Active" : "Closed",
         "System.AssignedTo": { displayName: "Alex Example", uniqueName: "alex@example.com" },
         "System.CreatedDate": "2025-01-01T00:00:00Z", "System.ChangedDate": "2025-01-02T00:00:00Z", "Custom.Priority": 0,
       } })) });
@@ -130,6 +131,18 @@ describe("TD-063 Boards reads", () => {
     expect(result.count).toBe("201 work items shown");
     expect(result["work-items"]).toHaveLength(201);
     expect((result["work-items"] as Array<{ id: number }>).at(-1)).toEqual({ id: 242 });
+  });
+
+  it.each([queryId, "Shared Queries/Open bugs", "Shared Queries\\Open bugs"])("preserves historical values across hydration chunks for %s", async (selector) => {
+    querySize = 201;
+    const result = await queryCommand(["run", selector, "--limit", "201", "--fields", "state,System.State", ...context]);
+    expect(result["work-items"]).toEqual(Array.from({ length: 201 }, () => ({ state: "Active", "System.State": "Active" })));
+  });
+
+  it("preserves historical values for linked-query sources and targets", async () => {
+    linkedQuery = true;
+    const result = await queryCommand(["run", queryId, "--fields", "id,state", ...context]);
+    expect(result["work-items"]).toEqual([{ id: 42, state: "Active" }, { id: 43, state: "Active" }]);
   });
 
   it("reports a definitive empty saved query", async () => {

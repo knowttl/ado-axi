@@ -144,6 +144,7 @@ async function fetchWorkItems(
   ids: number[],
   fields: string[],
   getOnly = false,
+  asOf?: string,
 ): Promise<WorkItem[]> {
   const out: WorkItem[] = [];
   for (let i = 0; i < ids.length; i += 200) {
@@ -151,8 +152,8 @@ async function fetchWorkItems(
     const result = await request<{ value?: WorkItem[] }>(profile, {
       method: getOnly ? "GET" : "POST",
       path: getOnly ? "_apis/wit/workitems" : "_apis/wit/workitemsbatch",
-      ...(getOnly ? { query: { ids: chunk.join(","), fields: fields.join(",") } }
-        : { body: { ids: chunk, fields } }),
+      ...(getOnly ? { query: { ids: chunk.join(","), fields: fields.join(","), asOf } }
+        : { body: { ids: chunk, fields, asOf } }),
     });
     out.push(...(result.value ?? []));
   }
@@ -182,7 +183,7 @@ export async function listWorkItems(
   }
   const wiql = buildWiql(args, project);
 
-  const result = await request<{ workItems?: Array<{ id: number }>; workItemRelations?: Array<{ source?: { id: number }; target?: { id: number } }> }>(profile, {
+  const result = await request<{ asOf?: string; workItems?: Array<{ id: number }>; workItemRelations?: Array<{ source?: { id: number }; target?: { id: number } }> }>(profile, {
     method: savedQuery ? "GET" : "POST",
     path: savedQuery ? `_apis/wit/wiql/${encodeURIComponent(savedQuery)}` : "_apis/wit/wiql",
     project,
@@ -206,7 +207,7 @@ export async function listWorkItems(
   }
 
   const page = ids.slice(0, limit);
-  const items = await fetchWorkItems(profile, page, [...new Set(requestedFields)], savedQuery !== undefined);
+  const items = await fetchWorkItems(profile, page, [...new Set(requestedFields)], savedQuery !== undefined, result.asOf);
   const rows = items.map((item) => Object.fromEntries(selected.map((column, index) => {
     const reference = requestedFields[index]!;
     const value = reference === "System.Id" ? item.id : item.fields?.[reference];

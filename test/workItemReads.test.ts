@@ -42,11 +42,12 @@ beforeEach(() => {
         workItems: top ? ids.slice(0, Number(top)) : ids });
     }
     if (url.pathname.endsWith("/workitemsbatch")) {
-      const body = JSON.parse(String(init?.body)) as { ids: number[]; fields: string[] };
+      const body = JSON.parse(String(init?.body)) as { ids: number[]; fields: string[]; asOf?: string };
       const unknown = body.fields.find((field) => !(field in fields));
       if (unknown) return Response.json({ message: `TF51535: Cannot find field ${unknown}` }, { status: 400 });
       return Response.json({ count: body.ids.length, value: body.ids.map((id) => ({ id, rev: 3,
-        fields: Object.fromEntries(body.fields.map((field) => [field, field === "System.Id" ? id : fields[field]])) })) });
+        fields: Object.fromEntries(body.fields.map((field) => [field, field === "System.Id" ? id
+          : field === "System.State" && body.asOf !== "2026-01-01T00:00:00Z" ? "Closed" : fields[field]])) })) });
     }
     if (url.pathname.endsWith("/workitems/42")) return Response.json({ id: 42, rev: 3, fields });
     throw new Error(`Unexpected API request: ${url.pathname}`);
