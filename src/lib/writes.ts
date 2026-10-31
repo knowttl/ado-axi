@@ -27,6 +27,9 @@ export function isWriteCommand(command: string, argv: string[]): boolean {
         || (action === "folder" && ["create", "delete"].includes(operation ?? ""));
     case "ref":
       return action === "create" || action === "delete";
+    case "repo":
+      return ["create", "update", "delete", "import"].includes(action ?? "")
+        || (action === "policy" && ["create", "update", "delete"].includes(operation ?? ""));
     case "config":
       return action === "init" || action === "add";
     default:
