@@ -76,9 +76,15 @@ describe("work-item read regressions", () => {
     expect(result["work-items"]).toHaveLength(25);
   });
 
-  it.each([3, 5])("TD-059: avoids exhaustive claims for capped results with limit %i", async (limit) => {
+  it.each([
+    { limit: 3, query: [] },
+    { limit: 5, query: ["--query", "SELECT [System.Id] FROM WorkItems"] },
+    { limit: 30, query: [] },
+  ])("TD-059: bounds WIQL results without exhaustive claims with limit $limit", async ({ limit, query }) => {
     queryResultSize = 20000;
-    const result = await workItemCommand(["list", "--limit", String(limit), ...context]);
+    const result = await workItemCommand(["list", "--limit", String(limit), ...query, ...context]);
+    const [url] = vi.mocked(fetch).mock.calls[0]!;
+    expect(new URL(String(url)).searchParams.get("$top")).toBe(String(limit));
     expect(decode(encode(result))).toMatchObject({ count: `${limit} work items shown` });
     expect(result["work-items"]).toHaveLength(limit);
     expect(result.help).toEqual([

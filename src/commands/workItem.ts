@@ -180,6 +180,7 @@ export async function listWorkItems(
     method: "POST",
     path: "_apis/wit/wiql",
     project,
+    query: { $top: limit },
     body: { query: wiql },
   });
   const ids = (result.workItems ?? []).map((w) => w.id);
