@@ -30,7 +30,7 @@ numbers against your own organization.
 
 | Interface | Context (Turn 0) | Output | Measured payload | Write Safety | Guidance |
 |---|---|---|---|---|---|
-| **`ado-axi`** | Skill frontmatter always; body on demand (see [recorded measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
+| **`ado-axi`** | Skill frontmatter always; body loaded on demand (see [recorded surface measurements](BENCHMARK.md#tool-surface-benchmark)) | **TOON** | **-94.5%** vs raw REST JSON (-90.0% mean per scenario) | ✅ **Immediate writes; idempotent + CAS guards; no policy bypass** | Structured hints (`help[]`) |
 | **Raw CLI** (`az devops`) | ~0 tokens | JSON / ASCII | Baseline (full REST payloads, slow startup) | ❌ Direct mutations | Human text / exit codes |
 | **Azure DevOps MCP** | **16,356 tokens** (40 tool schemas, v2.10.0) | JSON-RPC | Highest overhead (full schemas resent every turn) | Varies | Schema validation errors |
 
@@ -161,11 +161,10 @@ Unknown aliases and API-rejected reference names produce errors.
   summarizes test totals and failing tests with their error messages.
 - **Bounded output.** Lists take `--limit`/`--fields`, detail views truncate with a `--full` escape
   hatch, and `repo file` refuses folders and binaries.
-- **ADO REST URLs.** `api` accepts relative paths or full HTTPS REST URLs on `dev.azure.com`,
-  `vsrm.dev.azure.com`, `vssps.dev.azure.com`, and `almsearch.dev.azure.com`. Full URLs supply
-  org/project/host/query, select matching profile authentication, and do not inherit default project
-  context. Conflicting flags or profiles from another org fail locally; credentials, custom ports,
-  fragments, dot segments, and duplicate query keys in URLs are rejected.
+- **ADO REST URLs.** `api` accepts relative paths or full HTTPS REST URLs on `dev.azure.com`, `vsrm.dev.azure.com`, `vssps.dev.azure.com`, `almsearch.dev.azure.com`, and `vsaex.dev.azure.com`.
+  For relative paths, `--host` accepts `dev` (default), `vsrm`, `vssps`, `almsearch`, or `vsaex`.
+  Full URLs supply org/project/host/query, select matching profile authentication, and do not inherit default project context.
+  Conflicting flags or profiles from another org fail locally; credentials, custom ports, fragments, dot segments, and duplicate query keys in URLs are rejected.
 - **Piped input.** `api` sends piped stdin as the raw request body when `--body` is omitted;
   work-item and PR descriptions plus every comment command read stdin when their content flag is omitted.
   For Markdown or multiline comments, use a quoted heredoc — never `--body "..."` with backticks,

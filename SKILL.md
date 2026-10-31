@@ -266,9 +266,9 @@ ado-axi api PATCH _apis/wit/workitems/4211 --content-type json-patch \
   --body '[{"op":"test","path":"/rev","value":7},{"op":"add","path":"/fields/System.State","value":"Active"}]'
 ```
 
-Relative paths use `https://dev.azure.com/<org>/<project>/`; `--host` selects
-`dev` (default), `vsrm`, `vssps`, or `almsearch`. Full HTTPS REST URLs on those four hosts also
-work: URL org/project/host/query replace default context and use matching profile authentication.
+Relative paths use `https://dev.azure.com/<org>/<project>/`.
+See [README behavior](README.md#behavior) for supported REST hosts and `--host` values.
+Full HTTPS REST URLs supply org/project/host/query, replace default context, and use matching profile authentication.
 Conflicting flags or a `--profile` from another org are rejected; do not override URL context.
 Quote URLs with query parameters. When `--body` is omitted and stdin is piped,
 stdin is sent unchanged as the request body. `--content-type` accepts the shorthands

@@ -20,7 +20,7 @@ Team APIs use offset pagination; user entitlement and other paged audit APIs use
 | `service-endpoint show <id>` | Endpoint ID | Project |
 | `variable-group list` | None | Project |
 | `variable-group show <id>` | Variable group ID | Project |
-| `pipeline variable list` | `--pipeline <definition-id>` | Project |
+| `pipeline variable list` | `--pipeline <definition-id>`, positional definition ID, or `--id <definition-id>` | Project |
 | `pipeline show <id>` | Build definition ID | Project |
 | `agent list` | `--pool <id>` | Organization |
 | `agent show <id>` | Agent ID and `--pool <id>` | Organization |
