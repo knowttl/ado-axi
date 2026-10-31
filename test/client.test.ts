@@ -48,18 +48,16 @@ describe("response parsing", () => {
     await expect(request(profile, { path: "_apis/example", method: "DELETE" })).resolves.toBeUndefined();
   });
 
-  it("keeps sign-in pages as authentication errors, including raw requests", async () => {
+  it.each([{}, { raw: true }, { binaryMaxBytes: 1024 }])("keeps sign-in pages as authentication errors with %j", async (options) => {
     process.env.EXAMPLE_PAT = "secret";
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       "<title>Azure DevOps Services | Sign In</title>",
       { headers: { "content-type": "text/html" } },
     )));
 
-    for (const raw of [false, true]) {
-      await expect(request(profile, { path: "_apis/projects", raw })).rejects.toMatchObject({
-        code: "AUTH_REQUIRED",
-      });
-    }
+    await expect(request(profile, { path: "_apis/projects", ...options })).rejects.toMatchObject({
+      code: "AUTH_REQUIRED",
+    });
   });
 });
 

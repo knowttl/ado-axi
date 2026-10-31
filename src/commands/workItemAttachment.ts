@@ -41,6 +41,7 @@ export async function workItemAttachment(action: string, args: ReturnType<typeof
   const itemPath = `_apis/wit/workitems/${id}`;
 
   if (attach) {
+    const comment = flagString(args, "comment");
     const ifRev = flagNumber(args, "if-rev");
     if (ifRev !== undefined && (!Number.isSafeInteger(ifRev) || ifRev < 1)) {
       throw new AxiError("--if-rev must be a positive integer", "VALIDATION_ERROR");
@@ -91,14 +92,14 @@ export async function workItemAttachment(action: string, args: ReturnType<typeof
           { op: "test", path: "/rev", value: rev },
           { op: "add", path: "/relations/-", value: {
             rel: "AttachedFile", url: uploaded.url,
-            attributes: { ...(flagString(args, "comment") ? { comment: flagString(args, "comment") } : {}) },
+            attributes: { ...(comment ? { comment } : {}) },
           } },
         ],
       });
     } catch {
       throw Object.assign(new AxiError("attachment uploaded but work-item relation failed", "ATTACHMENT_UNLINKED", [
         `Run \`ado-axi work-item get ${id}\` to read the current rev and relations`,
-        `Reuse the uploaded URL in an AttachedFile relation with \`ado-axi api PATCH ${itemPath} --body '<json-patch>'\` and a /rev test; rerunning attach uploads another file`,
+        `Reuse the uploaded URL in an AttachedFile relation with \`ado-axi api PATCH ${itemPath} --content-type json-patch --body '<json-patch>'\` and a /rev test; rerunning attach uploads another file`,
       ]), { attachment: { id: uploaded.id, url: uploaded.url, name, size: bytes.length } });
     }
     return { attachment: { id: uploaded.id, name, size: bytes.length, rev: updated.rev } };

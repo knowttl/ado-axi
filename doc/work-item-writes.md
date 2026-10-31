@@ -22,7 +22,7 @@ Success reports attachment `id`, `name`, `size` in bytes, and the new work-item 
 Uploading and linking are separate Azure DevOps operations.
 If the relation fails, `ATTACHMENT_UNLINKED` reports the uploaded attachment's `id`, `url`, `name`, and `size` structurally, without the API response body.
 Re-read the work item and inspect its relations before retrying.
-Reuse that URL in an AttachedFile relation through `ado-axi api PATCH _apis/wit/workitems/<id> --body '<json-patch>'`, with a `test /rev` operation followed by the relation addition.
+Reuse that URL in an AttachedFile relation through `ado-axi api PATCH _apis/wit/workitems/<id> --content-type json-patch --body '<json-patch>'`, with a `test /rev` operation followed by the relation addition.
 Rerunning `attach` uploads a new copy; it does not reuse the previously uploaded attachment.
 
 `attachment get` remains available with writes disabled.

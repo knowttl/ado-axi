@@ -88,6 +88,7 @@ export async function request<T = unknown>(
     );
   }
 
+  let binary: Buffer | undefined;
   if (options.binaryMaxBytes !== undefined) {
     if (!response.ok) {
       await response.body?.cancel();
@@ -113,15 +114,16 @@ export async function request<T = unknown>(
     } finally {
       await reader?.cancel();
     }
-    return Buffer.concat(chunks, size) as unknown as T;
+    binary = Buffer.concat(chunks, size);
   }
-  const text = await response.text();
+  const text = binary === undefined ? await response.text() : binary.toString("utf8");
   options.signal?.throwIfAborted();
   if (!response.ok) throw translateError(response, text, profile, url);
   options.onHeaders?.(response.headers);
   if (/<title>[\s\S]*Azure DevOps Services \| Sign In/i.test(text)) {
     throw translateError(new Response(null, { status: 401 }), text, profile, url);
   }
+  if (binary !== undefined) return binary as unknown as T;
   if (options.raw) return text as unknown as T;
   if (!text) return undefined as unknown as T;
   try {

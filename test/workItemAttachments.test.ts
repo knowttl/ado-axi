@@ -64,6 +64,13 @@ describe("TD-062 work-item attach", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each(["evidence.bin", "missing.bin"])("rejects a bare --comment before reading %s or contacting the API", async (file) => {
+    await expect(workItemCommand(["attach", "42", "--file", join(dir, file), "--comment", ...context])).rejects.toMatchObject({
+      code: "VALIDATION_ERROR", message: "flag --comment requires a value",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it.each([{ flags: [] }, { flags: ["--if-rev", "7"] }])("uploads local binary bytes and links with a revision guard $flags", async ({ flags }) => {
     fetchMock.mockResolvedValueOnce(json({ id: 42, rev: 7 }))
       .mockResolvedValueOnce(json({ id: attachmentId, url: attachmentUrl }))
@@ -90,7 +97,7 @@ describe("TD-062 work-item attach", () => {
     await expect(workItemCommand(["attach", "42", "--file", join(dir, "evidence.bin"), ...context])).rejects.toMatchObject({
       message: "attachment uploaded but work-item relation failed", code: "ATTACHMENT_UNLINKED",
       attachment: { id: attachmentId, url: attachmentUrl, name: "evidence.bin", size: 6 },
-      suggestions: [expect.stringContaining("work-item get 42"), expect.stringContaining("Reuse the uploaded URL")],
+      suggestions: [expect.stringContaining("work-item get 42"), expect.stringContaining("ado-axi api PATCH _apis/wit/workitems/42 --content-type json-patch --body '<json-patch>'")],
     });
   });
 
@@ -154,6 +161,14 @@ describe("TD-062 work-item attachment get", () => {
     const out = join(dir, "evidence.bin");
     await workItemCommand(["attachment", "get", "42", "--name", "evidence.bin", "--out", out, "--force", ...context]);
     expect(await readFile(out, "utf8")).toBe("replacement");
+  });
+
+  it.each([false, true])("rejects sign-in HTML and preserves output with force=%j", async (force) => {
+    fetchMock.mockResolvedValueOnce(json({ id: 42, rev: 7, relations: [relation] }))
+      .mockResolvedValueOnce(new Response("<title>Azure DevOps Services | Sign In</title>", { headers: { "content-type": "text/html" } }));
+    const out = join(dir, "evidence.bin");
+    await expect(workItemCommand(["attachment", "get", "42", "--name", "evidence.bin", "--out", out, ...(force ? ["--force"] : []), ...context])).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
+    expect(await readFile(out)).toEqual(content);
   });
 
   it.each([true, false])("bounds downloads with Content-Length present=%j", async (declared) => {
