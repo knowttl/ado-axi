@@ -20,7 +20,7 @@ it.each(["_apis/example/items", "https://dev.azure.com/acme/Selected%20Project/_
     } }));
     const result = spawnSync(process.execPath, [
       "--import", createRequire(import.meta.url).resolve("tsx"),
-      "--import", fileURLToPath(new URL("./fixtures/api-config-fetch.mjs", import.meta.url)),
+      "--import", fileURLToPath(new URL("./fixtures/api-config-fetch.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
       "api", "GET", path, "--config", file, "--profile", "selected", "--project", "Selected Project",
     ], { cwd: dir, encoding: "utf8", timeout: 10_000, input: "",

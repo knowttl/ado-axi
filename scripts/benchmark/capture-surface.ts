@@ -2,7 +2,7 @@
 /**
  * Captures the MCP tool surface for the tool-surface benchmark.
  *
- *   node scripts/benchmark/capture-surface.mjs --org <org> [--package @azure-devops/mcp]
+ *   node scripts/benchmark/capture-surface.ts --org <org> [--package @azure-devops/mcp]
  *
  * Starts the MCP server over stdio, performs `initialize` + `tools/list`, and
  * stores the tool schemas (names, descriptions, JSON schemas) with the
@@ -15,14 +15,14 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = parseFlags(process.argv.slice(2));
-const pkg = args.package ?? "@azure-devops/mcp";
-const org = args.org;
-const entry = args.entry;
+const pkg = (args.package as string | undefined) ?? "@azure-devops/mcp";
+const org = args.org as string | undefined;
+const entry = args.entry as string | undefined;
 const watchdogMs = Number(args.timeout ?? 90) * 1000;
 
 if (!org) {
   console.error(
-    "usage: node scripts/benchmark/capture-surface.mjs --org <org> [--entry <server.js>] [--package <pkg>] [--timeout <seconds>]",
+    "usage: node scripts/benchmark/capture-surface.ts --org <org> [--entry <server.js>] [--package <pkg>] [--timeout <seconds>]",
   );
   process.exit(2);
 }
@@ -61,7 +61,15 @@ function shutdown() {
 }
 
 let buffer = "";
-const pending = new Map();
+interface RpcResponse {
+  id: number;
+  result?: {
+    tools?: unknown[];
+    serverInfo?: { version?: string };
+  };
+}
+
+const pending = new Map<number, (message: RpcResponse) => void>();
 
 child.stdout.on("data", (chunk) => {
   buffer += chunk.toString();
@@ -70,9 +78,9 @@ child.stdout.on("data", (chunk) => {
     const line = buffer.slice(0, index).trim();
     buffer = buffer.slice(index + 1);
     if (!line) continue;
-    let message;
+    let message: RpcResponse;
     try {
-      message = JSON.parse(line);
+      message = JSON.parse(line) as RpcResponse;
     } catch {
       continue;
     }
@@ -85,8 +93,8 @@ child.stdout.on("data", (chunk) => {
 });
 
 let nextId = 1;
-const send = (method, params) =>
-  new Promise((resolvePromise, rejectPromise) => {
+const send = (method: string, params: Record<string, unknown>) =>
+  new Promise<RpcResponse>((resolvePromise, rejectPromise) => {
     const id = nextId++;
     pending.set(id, resolvePromise);
     child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
@@ -122,16 +130,16 @@ try {
   writeFileSync(join(root, "benchmark", "tool-surface.json"), `${JSON.stringify(surface, null, 2)}\n`, "utf8");
   console.log(`✓ captured ${tools.length} MCP tools from ${pkg}`);
 } catch (error) {
-  console.error(`✗ ${error.message}`);
+  console.error(`✗ ${(error as Error).message}`);
   process.exitCode = 1;
 } finally {
   shutdown();
 }
 
-function parseFlags(argv) {
-  const out = {};
+function parseFlags(argv: string[]) {
+  const out: Record<string, string | true> = {};
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
+    const arg = argv[i]!;
     if (!arg.startsWith("--")) continue;
     const key = arg.slice(2);
     const next = argv[i + 1];

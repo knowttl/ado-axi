@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["benchmark/**/*.ts", "scripts/**/*.ts", "test/fixtures/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

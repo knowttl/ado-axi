@@ -187,7 +187,7 @@ async function replayCli(argv: string[] | string, calls: unknown[], env: NodeJS.
     const fixture = join(dir, "replay.json");
     await writeFile(fixture, JSON.stringify({ calls }));
     const cli = [
-      "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", createRequire(import.meta.url).resolve("tsx"), "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)),
     ];
     const options = { cwd: dir, encoding: "utf8" as const, timeout: 10_000,

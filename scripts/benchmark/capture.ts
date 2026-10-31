@@ -2,7 +2,7 @@
 /**
  * Captures the benchmark corpus from a real Azure DevOps organization.
  *
- *   node scripts/benchmark/capture.mjs --targets benchmark/targets.json [--only <id>]
+ *   node scripts/benchmark/capture.ts --targets benchmark/targets.json [--only <id>]
  *
  * Every recorded response is scrubbed before it touches disk. The scrubbed
  * fixtures under benchmark/fixtures/ are the only artifact the bench step reads.
@@ -12,7 +12,23 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SCENARIOS, resolveArgv } from "../../benchmark/scenarios.mjs";
+import { SCENARIOS, resolveArgv } from "../../benchmark/scenarios.ts";
+import type { RecordedCall } from "./fetch-hook.ts";
+
+type Targets = {
+  profile: string;
+  org: string;
+  project: string;
+  repo: string;
+  workItemId: string | number;
+  prId: string | number;
+  failedRunId: string | number;
+  testRunId: string | number;
+  filePath: string;
+  idOffset: number;
+  scrubbed?: { repo?: string; filePath?: string };
+  leakCheck?: string[];
+};
 import {
   collectAllowedSurvivors,
   collectSensitiveStrings,
@@ -20,16 +36,16 @@ import {
   mapNumericId,
   scanForLeaks,
   scanForSecrets,
-} from "./scrub.mjs";
+} from "./scrub.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const fixturesDir = join(root, "benchmark", "fixtures");
-const hook = join(root, "scripts", "benchmark", "fetch-hook.mjs");
+const hook = join(root, "scripts", "benchmark", "fetch-hook.ts");
 const cli = join(root, "dist", "bin", "ado-axi.js");
 
 const args = parseFlags(process.argv.slice(2));
-const targetsPath = resolve(root, args.targets ?? "benchmark/targets.json");
-const targets = JSON.parse(readFileSync(targetsPath, "utf8"));
+const targetsPath = resolve(root, (args.targets as string | undefined) ?? "benchmark/targets.json");
+const targets = JSON.parse(readFileSync(targetsPath, "utf8")) as Targets;
 
 requireKeys(targets, ["profile", "org", "project", "repo", "workItemId", "prId", "failedRunId", "testRunId", "filePath"]);
 
@@ -96,7 +112,7 @@ for (const scenario of selected) {
     continue;
   }
 
-  const recorded = JSON.parse(readFileSync(recordFile, "utf8"));
+  const recorded = JSON.parse(readFileSync(recordFile, "utf8")) as { calls: RecordedCall[] };
   if (recorded.calls.length === 0) {
     failures += 1;
     console.error(`✗ ${scenario.id}: no HTTP calls recorded`);
@@ -165,10 +181,10 @@ if (failures > 0) {
 }
 console.log(`\nfixtures written to benchmark/fixtures — review them before committing`);
 
-function parseFlags(argv) {
-  const out = {};
+function parseFlags(argv: string[]) {
+  const out: Record<string, string | true> = {};
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
+    const arg = argv[i]!;
     if (!arg.startsWith("--")) continue;
     const key = arg.slice(2);
     const next = argv[i + 1];
@@ -182,7 +198,7 @@ function parseFlags(argv) {
   return out;
 }
 
-function requireKeys(object, keys) {
+function requireKeys(object: Record<string, unknown>, keys: string[]) {
   const missing = keys.filter((key) => object[key] === undefined);
   if (missing.length > 0) {
     console.error(`targets file is missing: ${missing.join(", ")}`);
@@ -190,10 +206,10 @@ function requireKeys(object, keys) {
   }
 }
 
-function pathToFileUrl(path) {
+function pathToFileUrl(path: string) {
   return new URL(`file://${path.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1:")}`).href;
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

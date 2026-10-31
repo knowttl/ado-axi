@@ -314,7 +314,7 @@ describe("audit CLI dispatch", () => {
     const fixture = join(scratch, "replay.json");
     writeFileSync(fixture, JSON.stringify({ calls: [{ method: "GET", url: `https://dev.azure.com/synthetic-org/${path}`, status: 200, body: JSON.stringify(body) }] }));
     const result = spawnSync(process.execPath, [
-      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), command, ...context, "--limit=1", group, ...action, "--full",
     ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
     expect(result.status).toBe(0);
@@ -338,7 +338,7 @@ describe("audit CLI secret handling", () => {
     const fixture = join(scratch, "replay.json");
     writeFileSync(fixture, JSON.stringify({ calls: [{ method: "GET", url, status: 200, body: JSON.stringify(body) }] }));
     const result = spawnSync(process.execPath, [
-      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+      "--import", "tsx", "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
       fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), ...argv, ...context, "--full",
     ], { encoding: "utf8", timeout: 10_000, env: { ...process.env, ADO_AXI_PAT: "synthetic-placeholder", ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: fixture } });
     expect(result.status).toBe(0);

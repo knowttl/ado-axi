@@ -3,19 +3,50 @@
  * Replays the scrubbed fixtures and compares raw Azure DevOps REST JSON against
  * ado-axi TOON output. No network access, no credentials, fully deterministic.
  *
- *   node scripts/benchmark/bench.mjs [--json] [--only <id>]
+ *   node scripts/benchmark/bench.ts [--json] [--only <id>]
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SCENARIOS } from "../../benchmark/scenarios.mjs";
-import { DEFAULT_ENCODING, countTokens } from "./tokens.mjs";
+import { SCENARIOS } from "../../benchmark/scenarios.ts";
+import { DEFAULT_ENCODING, countTokens } from "./tokens.ts";
+import type { RecordedCall } from "./fetch-hook.ts";
+
+interface Fixture {
+  scenario: string;
+  group: string;
+  label: string;
+  argv: string[];
+  calls: RecordedCall[];
+}
+
+interface BenchmarkRow {
+  scenario: string;
+  group: string;
+  label: string;
+  command: string;
+  calls: number;
+  restRawTokens: number;
+  restPrettyTokens: number;
+  adoAxiTokens: number;
+  reductionVsRaw: number;
+  reductionVsPretty: number;
+}
+
+interface SurfaceFile {
+  mcpTools?: unknown[];
+  helpCommands?: string[];
+  auditCommands?: string[][];
+  source?: string;
+  sourceVersion?: string;
+  capturedAt?: string;
+}
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const fixturesDir = join(root, "benchmark", "fixtures");
-const hook = join(root, "scripts", "benchmark", "fetch-hook.mjs");
+const hook = join(root, "scripts", "benchmark", "fetch-hook.ts");
 const cli = join(root, "dist", "bin", "ado-axi.js");
 const surfacePath = join(root, "benchmark", "tool-surface.json");
 
@@ -47,7 +78,7 @@ const order = new Map(SCENARIOS.map((scenario, index) => [scenario.id, index]));
 const fixtures = existsSync(fixturesDir)
   ? readdirSync(fixturesDir)
       .filter((name) => name.endsWith(".json"))
-      .map((name) => JSON.parse(readFileSync(join(fixturesDir, name), "utf8")))
+      .map((name) => JSON.parse(readFileSync(join(fixturesDir, name), "utf8")) as Fixture)
       .filter((fixture) => !args.only || fixture.scenario === args.only)
       .sort((a, b) => (order.get(a.scenario) ?? 999) - (order.get(b.scenario) ?? 999))
   : [];
@@ -71,7 +102,7 @@ if (fixtures.length === 0) {
   process.exit(2);
 }
 
-const rows = [];
+const rows: BenchmarkRow[] = [];
 let failures = 0;
 
 for (const fixture of fixtures) {
@@ -172,7 +203,7 @@ if (args.json) {
   );
 }
 
-function measureSurface(surfaceFile) {
+function measureSurface(surfaceFile: SurfaceFile) {
   const mcpTools = surfaceFile.mcpTools ?? [];
   const mcpTokens = mcpTools.length > 0 ? countTokens(JSON.stringify(mcpTools)) : 0;
   const skillPath = join(root, "SKILL.md");
@@ -181,12 +212,12 @@ function measureSurface(surfaceFile) {
   const frontmatterTokens = frontmatter ? countTokens(frontmatter[0]) : 0;
   const skillBodyTokens = frontmatter ? countTokens(skill.slice(frontmatter[0].length)) : countTokens(skill);
   const helpTokens = countTokens(runHelp([]));
-  const commandHelpTokens = {};
+  const commandHelpTokens: Record<string, number> = {};
   for (const command of surfaceFile.helpCommands ?? []) {
     commandHelpTokens[command] = countTokens(runHelp([command, "--help"]));
   }
   const helpValues = Object.values(commandHelpTokens);
-  const auditCommandHelpTokens = {};
+  const auditCommandHelpTokens: Record<string, number> = {};
   for (const argv of surfaceFile.auditCommands ?? []) {
     auditCommandHelpTokens[argv.join(" ")] = countTokens(runHelp([...argv, "--help"]));
   }
@@ -207,7 +238,7 @@ function measureSurface(surfaceFile) {
   };
 }
 
-function runHelp(argv) {
+function runHelp(argv: string[]) {
   const result = spawnSync(process.execPath, [cli, ...argv, ...(argv.length === 0 ? ["--help"] : [])], {
     cwd: root,
     encoding: "utf8",
@@ -216,7 +247,7 @@ function runHelp(argv) {
   return result.stdout ?? "";
 }
 
-function renderMarkdown(data) {
+function renderMarkdown(data: typeof results) {
   const lines = [];
   lines.push("# ado-axi benchmark");
   lines.push("");
@@ -308,7 +339,7 @@ function renderMarkdown(data) {
   }
   lines.push("## Method");
   lines.push("");
-  lines.push("1. `node scripts/benchmark/capture.mjs` records the real REST traffic of each scenario.");
+  lines.push("1. `node scripts/benchmark/capture.ts` records the real REST traffic of each scenario.");
   lines.push(
     "2. Each recording is scrubbed before it is written. The scrubber is default-deny: a string only survives when it is provably safe (an ISO timestamp, a number, an Azure DevOps route word, an allow-listed enum value, or a placeholder the harness itself wrote). Organization, project and repository names are renamed; identities, e-mail addresses, GUIDs, commit hashes, identity descriptors, branch names, file paths, pipeline parameter names and every remaining free-text value are replaced; entity ids are shifted by a random offset that is never published. Free text keeps its exact token count, so field sizes stay realistic.",
   );
@@ -316,7 +347,7 @@ function renderMarkdown(data) {
     "3. Capture refuses to write a fixture when a secret pattern matches, when a caller-supplied term survives, when any recorded string that was not classified as safe still appears, or when an entity id was not shifted.",
   );
   lines.push(
-    "4. `node scripts/benchmark/bench.mjs` replays the scrubbed fixtures with no network access and counts tokens on both sides. `pnpm test` re-runs the same classification over the committed fixtures.",
+    "4. `node scripts/benchmark/bench.ts` replays the scrubbed fixtures with no network access and counts tokens on both sides. `pnpm test` re-runs the same classification over the committed fixtures.",
   );
   lines.push("");
   lines.push("### Honesty notes");
@@ -345,7 +376,7 @@ function renderMarkdown(data) {
   return lines.join("\n");
 }
 
-function prettify(body) {
+function prettify(body: string) {
   try {
     return JSON.stringify(JSON.parse(body), null, 2);
   } catch {
@@ -353,35 +384,35 @@ function prettify(body) {
   }
 }
 
-function ratio(before, after) {
+function ratio(before: number, after: number) {
   if (!before) return 0;
   return (after - before) / before;
 }
 
-function sum(rows, key) {
+function sum(rows: BenchmarkRow[], key: "restRawTokens" | "restPrettyTokens" | "adoAxiTokens") {
   return rows.reduce((total, row) => total + row[key], 0);
 }
 
-function mean(values) {
+function mean(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function median(values) {
+function median(values: number[]) {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+  return sorted.length % 2 === 0 ? (sorted[middle - 1]! + sorted[middle]!) / 2 : sorted[middle]!;
 }
 
-function formatPct(value) {
+function formatPct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function parseFlags(argv) {
-  const out = {};
+function parseFlags(argv: string[]) {
+  const out: Record<string, string | true> = {};
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
+    const arg = argv[i]!;
     if (!arg.startsWith("--")) continue;
     const key = arg.slice(2);
     const next = argv[i + 1];
@@ -395,6 +426,6 @@ function parseFlags(argv) {
   return out;
 }
 
-function pathToFileUrl(path) {
+function pathToFileUrl(path: string) {
   return new URL(`file://${path.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1:")}`).href;
 }

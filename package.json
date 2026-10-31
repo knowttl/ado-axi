@@ -42,12 +42,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tooling.json",
     "dev": "tsx src/bin/ado-axi.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "node scripts/benchmark/bench.mjs",
-    "bench:capture": "node scripts/benchmark/capture.mjs",
-    "bench:surface": "node scripts/benchmark/capture-surface.mjs",
+    "bench": "node scripts/benchmark/bench.ts",
+    "bench:capture": "node scripts/benchmark/capture.ts",
+    "bench:surface": "node scripts/benchmark/capture-surface.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build && npm test"
   },

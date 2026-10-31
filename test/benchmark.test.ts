@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-// @ts-expect-error -- the benchmark harness is plain ESM JavaScript
 import {
   collectAllowedSurvivors,
   collectSensitiveStrings,
@@ -12,9 +11,8 @@ import {
   scanForLeaks,
   scanForSecrets,
   scrubPath,
-} from "../scripts/benchmark/scrub.mjs";
-// @ts-expect-error -- the benchmark harness is plain ESM JavaScript
-import { countTokens } from "../scripts/benchmark/tokens.mjs";
+} from "../scripts/benchmark/scrub.ts";
+import { countTokens } from "../scripts/benchmark/tokens.ts";
 
 const FIXTURES_DIR = join(process.cwd(), "benchmark", "fixtures");
 

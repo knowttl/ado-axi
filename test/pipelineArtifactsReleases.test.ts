@@ -32,7 +32,7 @@ function sent(index: number) {
 function runCli(argv: string[], replay: string, writes: string) {
   return spawnSync(process.execPath, [
     "--import", createRequire(import.meta.url).resolve("tsx"),
-    "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.mjs", import.meta.url)),
+    "--import", fileURLToPath(new URL("../scripts/benchmark/fetch-hook.ts", import.meta.url)),
     fileURLToPath(new URL("../src/bin/ado-axi.ts", import.meta.url)), "pipeline", ...argv, ...context,
   ], { cwd: dir, encoding: "utf8", timeout: 10_000,
     env: { ...process.env, ADO_AXI_WRITES: writes, ADO_AXI_BENCH_MODE: "replay", ADO_AXI_BENCH_FILE: replay } });
