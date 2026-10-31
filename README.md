@@ -2,7 +2,7 @@
 
 This is a fork of [jeffreyhaen/ado-axi](https://github.com/jeffreyhaen/ado-axi), maintained at [knowttl/ado-axi](https://github.com/knowttl/ado-axi).
 
-[![npm](https://img.shields.io/npm/v/%40jeffreyhaen%2Fado-axi.svg)](https://www.npmjs.com/package/@jeffreyhaen/ado-axi)
+[![npm](https://img.shields.io/npm/v/%40knowttl%2Fado-axi.svg)](https://www.npmjs.com/package/@knowttl/ado-axi)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
@@ -39,14 +39,14 @@ numbers against your own organization.
 Install globally (recommended for repeated use):
 
 ```sh
-npm install -g @jeffreyhaen/ado-axi
+npm install -g @knowttl/ado-axi
 ado-axi --help
 ```
 
 For a one-off invocation without installing:
 
 ```sh
-npx -y @jeffreyhaen/ado-axi --help
+npx -y @knowttl/ado-axi --help
 ```
 
 ## Agent integration
@@ -54,7 +54,7 @@ npx -y @jeffreyhaen/ado-axi --help
 Install the skill globally so an agent loads the usage guide on demand:
 
 ```sh
-npx skills add jeffreyhaen/ado-axi --skill ado-axi -g
+npx skills add knowttl/ado-axi --skill ado-axi -g
 ```
 
 Omit `-g` to install the skill for the current project only.
