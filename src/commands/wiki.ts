@@ -70,8 +70,9 @@ export async function wikiCommand(argv: string[]): Promise<AuditRecord> {
   if (operation === "get") {
     const original = page!.content ?? "";
     // Markdown can include credential-bearing or signed links. Mask those in output, including --full.
-    const safe = original.replace(/https?:\/\/[^\s<>"'\])]+/gi, (url) =>
-      /\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(url) ? "[redacted URL]" : url);
+    const safe = original.replace(/https?:\/\/[^\s<>"]+/gi, (url) =>
+      /\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(url)
+        ? `[redacted URL]${url.match(/[)\]]+$/)?.[0] ?? ""}` : url);
     const preview = truncate(safe, flagBool(args, "full") ? Number.MAX_SAFE_INTEGER : 4000);
     return { page: { id: page!.id, path: page!.path, etag: etag ?? "", chars: original.length, content: preview.text },
       ...(preview.truncated ? { help: [`Run \`${hint([...pageCommand, "--full"])}\` for complete page content`] } : {}) };

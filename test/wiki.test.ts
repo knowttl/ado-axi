@@ -92,6 +92,31 @@ describe("TD-065 wiki reads", () => {
       .toBe("[signed]([redacted URL]) [auth]([redacted URL]) [docs](https://example.com/docs)");
     expect(JSON.stringify(result)).not.toContain(secret);
   });
+
+  describe.each([
+    { mode: "default", flags: [] },
+    { mode: "full", flags: ["--full"] },
+  ])("URL redaction in $mode output", ({ flags }) => {
+    it.each([
+      { name: "signed URL with an apostrophe", url: `https://example.com/team's/file?sig=${secret}` },
+      { name: "signed URL with parentheses", url: `https://example.com/team(reports)/file?sig=${secret}` },
+      { name: "signed URL with brackets", url: `https://[2001:db8::1]/file?sig=${secret}` },
+      { name: "credentials with an apostrophe", url: `https://team's:${secret}@example.com/file` },
+      { name: "credentials with parentheses", url: `https://team(reports):${secret}@example.com/file` },
+      { name: "credentials with brackets", url: `https://user:prefix]${secret}@example.com/file` },
+    ])("masks $name and preserves surrounding Markdown", async ({ url }) => {
+      vi.stubEnv("ADO_AXI_WRITES", "0");
+      const docs = "[docs](https://example.com/team's/report(v1))";
+      const content = `[download](${url}) ${docs}`;
+      fetchMock.mockResolvedValueOnce(json({ ...page, content }, 200, { etag }));
+      const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", ...flags]);
+      expect(result.page).toEqual({ id: page.id, path: page.path, etag,
+        chars: content.length, content: `[download]([redacted URL]) ${docs}` });
+      expect(JSON.stringify(result)).not.toContain(secret);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(sent(0).method).toBe("GET");
+    });
+  });
 });
 
 describe("TD-065 wiki writes", () => {
