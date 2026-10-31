@@ -104,9 +104,28 @@ describe("TD-065 wiki reads", () => {
       { name: "credentials with an apostrophe", url: `https://team's:${secret}@example.com/file` },
       { name: "credentials with parentheses", url: `https://team(reports):${secret}@example.com/file` },
       { name: "credentials with brackets", url: `https://user:prefix]${secret}@example.com/file` },
+      { name: "named ampersand", url: `https://example.com/file?sv=1&amp;sig=${secret}` },
+      { name: "uppercase named ampersand", url: `https://example.com/file?sv=1&AMP;sig=${secret}` },
+      { name: "decimal ampersand", url: `https://example.com/file?sv=1&#38;sig=${secret}` },
+      { name: "hexadecimal ampersand", url: `https://example.com/file?sv=1&#x26;sig=${secret}` },
+      { name: "named question mark", url: `https://example.com/file&quest;sig=${secret}` },
+      { name: "decimal question mark", url: `https://example.com/file&#63;sig=${secret}` },
+      { name: "hexadecimal question mark", url: `https://example.com/file&#X3F;sig=${secret}` },
+      { name: "named equals sign", url: `https://example.com/file?sig&equals;${secret}` },
+      { name: "decimal equals sign", url: `https://example.com/file?sig&#61;${secret}` },
+      { name: "hexadecimal equals sign", url: `https://example.com/file?sig&#x3d;${secret}` },
+      { name: "named credential delimiters", url: `https://user&colon;${secret}&commat;example.com/file` },
+      { name: "decimal credential delimiters", url: `https://user&#58;${secret}&#64;example.com/file` },
+      { name: "hexadecimal credential delimiters", url: `https://user&#x3a;${secret}&#x40;example.com/file` },
+      { name: "decimal parameter name", url: `https://example.com/file?&#115;&#105;&#103;=${secret}` },
+      { name: "hexadecimal parameter name", url: `https://example.com/file?&#x73;&#x69;&#x67;=${secret}` },
+      { name: "named underscore", url: `https://example.com/file?api&lowbar;key=${secret}` },
+      { name: "alternate named underscore", url: `https://example.com/file?access&UnderBar;token=${secret}` },
+      { name: "named hyphen", url: `https://example.com/file?api&hyphen;key=${secret}` },
+      { name: "alternate named hyphen", url: `https://example.com/file?api&dash;key=${secret}` },
     ])("masks $name and preserves surrounding Markdown", async ({ url }) => {
       vi.stubEnv("ADO_AXI_WRITES", "0");
-      const docs = "[docs](https://example.com/team's/report(v1))";
+      const docs = "[docs](https://example.com/team's/report(v1)?lang=en&amp;view=full)";
       const content = `[download](${url}) ${docs}`;
       fetchMock.mockResolvedValueOnce(json({ ...page, content }, 200, { etag }));
       const result = await run(["page", "get", "--wiki", wikiId, "--path", "/Home", ...flags]);

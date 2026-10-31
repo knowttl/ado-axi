@@ -70,9 +70,18 @@ export async function wikiCommand(argv: string[]): Promise<AuditRecord> {
   if (operation === "get") {
     const original = page!.content ?? "";
     // Markdown can include credential-bearing or signed links. Mask those in output, including --full.
-    const safe = original.replace(/https?:\/\/[^\s<>"]+/gi, (url) =>
-      /\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(url)
-        ? `[redacted URL]${url.match(/[)\]]+$/)?.[0] ?? ""}` : url);
+    const urlEntities: Record<string, string> = { amp: "&", AMP: "&", quest: "?", equals: "=", commat: "@",
+      colon: ":", sol: "/", lowbar: "_", UnderBar: "_", hyphen: "-", dash: "-" };
+    const safe = original.replace(/https?:\/\/[^\s<>"]+/gi, (url) => {
+      const decoded = url.replace(/&#([xX][\da-fA-F]{1,6}|\d{1,7});|&([a-zA-Z]+);/g,
+        (entity, numeric: string | undefined, named: string | undefined) => {
+          if (named) return urlEntities[named] ?? entity;
+          const code = /^[xX]/.test(numeric!) ? parseInt(numeric!.slice(1), 16) : Number(numeric);
+          return code <= 0x7f ? String.fromCharCode(code) : entity;
+        });
+      return /\/\/[^/]*@|[?&](?:sig|token|access_token|pat|api[-_]?key|password|sas)=/i.test(decoded)
+        ? `[redacted URL]${url.match(/[)\]]+$/)?.[0] ?? ""}` : url;
+    });
     const preview = truncate(safe, flagBool(args, "full") ? Number.MAX_SAFE_INTEGER : 4000);
     return { page: { id: page!.id, path: page!.path, etag: etag ?? "", chars: original.length, content: preview.text },
       ...(preview.truncated ? { help: [`Run \`${hint([...pageCommand, "--full"])}\` for complete page content`] } : {}) };
