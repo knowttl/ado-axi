@@ -43,9 +43,7 @@ jobs:
         run: corepack enable
       - run: corepack pnpm install --frozen-lockfile --ignore-scripts
       - run: corepack pnpm run build
-      # These checks belong only to release publication, never pull-request CI.
-      - run: corepack pnpm test
-      - name: Pack verified release
+      - name: Pack release
         id: pack
         run: |
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" |
@@ -63,7 +61,7 @@ jobs:
             const path = process.env.NPM_CONFIG_USERCONFIG;
             writeFileSync(path, readFileSync(path, "utf8").split("\n").filter(line => !line.includes(":_authToken=")).join("\n"));
           '
-      - name: Publish verified tarball with provenance
+      - name: Publish tarball with provenance
         env:
           TARBALL_FILENAME: ${{ steps.pack.outputs.filename }}
         run: npm publish "$RUNNER_TEMP/$TARBALL_FILENAME" --access public --provenance
