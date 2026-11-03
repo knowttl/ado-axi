@@ -311,6 +311,8 @@ Anything without a dedicated command, such as test plans or code search, goes th
 
 ```sh
 ado-axi api _apis/testplan/plans --query 'filterActivePlans=true'
+ado-axi api _apis/graph/users --host vssps --no-project --paginate
+ado-axi api POST _apis/wit/attachments --input payload.bin --query 'fileName=payload.bin' --content-type application/octet-stream
 ado-axi api POST _apis/search/codesearchresults --host almsearch --body '{"searchText":"TODO"}'
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ado-axi api _apis/projects --no-project           # organization-level path
@@ -321,6 +323,8 @@ ado-axi api PATCH _apis/wit/workitems/4211 --content-type json-patch \
 
 Relative paths use `https://dev.azure.com/<org>/<project>/`.
 See [README behavior](README.md#behavior) for supported REST hosts and `--host` values.
+`--paginate` follows header or JSON body continuation tokens and returns pages; endpoints using only `$top` and `$skip` require explicit requests.
+Use `HEAD` where supported to request headers without a response body, and `--input` to send file bytes.
 Full HTTPS REST URLs supply org/project/host/query, replace default context, and use matching profile authentication.
 Conflicting flags or a `--profile` from another org are rejected; do not override URL context.
 Quote URLs with query parameters. When `--body` is omitted and stdin is piped,

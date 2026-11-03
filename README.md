@@ -150,8 +150,14 @@ ado-axi wiki list --limit 20
 ado-axi wiki page get --wiki <id> --path /Home --full
 ado-axi wiki page update --wiki <id> --path /Home --file ./Home.md
 ado-axi api _apis/testplan/plans            # anything not covered by a command
+ado-axi api _apis/graph/users --host vssps --no-project --paginate
+ado-axi api POST _apis/wit/attachments --input payload.bin --query 'fileName=payload.bin' --content-type application/octet-stream
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
+
+`api --paginate` follows header or JSON body continuation tokens and returns each response in `pages`.
+Endpoints that only support `$top` and `$skip` require explicit requests.
+`api HEAD` probes endpoints that support HEAD, and `--input` sends file bytes as a request body.
 
 Use `work-item attach` to upload and link a local file, and `work-item attachment get` to download it by name.
 See [attachment usage and recovery](doc/work-item-writes.md#attachments-td-062) for file requirements, size limits, revision guards, output fields, and overwrite behavior.
