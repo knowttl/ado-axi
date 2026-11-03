@@ -123,3 +123,51 @@ describe("api URL validation", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });
+
+describe("api requests", () => {
+  it("follows header and body continuation tokens while preserving pages", async () => {
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ value: [1] }), { headers: { "x-ms-continuationtoken": "first" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: [2], continuationToken: "second" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ value: [3], continuationToken: null })));
+    const result = await apiCommand(["_apis/example", "--paginate", "--query", "filter=yes"]);
+    expect(result.pages).toEqual([{ value: [1] }, { value: [2], continuationToken: "second" }, { value: [3], continuationToken: null }]);
+    expect(new URL(mockFetch.mock.calls[1]![0]).searchParams.get("continuationToken")).toBe("first");
+    expect(new URL(mockFetch.mock.calls[2]![0]).searchParams.get("filter")).toBe("yes");
+    expect(new URL(mockFetch.mock.calls[2]![0]).searchParams.get("continuationToken")).toBe("second");
+  });
+
+  it("rejects repeated continuation tokens", async () => {
+    mockFetch.mockImplementation(async () => new Response(JSON.stringify({ continuationToken: "same" })));
+    await expect(apiCommand(["_apis/example", "--paginate"])).rejects.toMatchObject({ code: "API_ERROR" });
+  });
+
+  it("sends input file bytes with the requested content type", async () => {
+    const file = join(dir, "payload");
+    writeFileSync(file, Buffer.from([0, 255, 42]));
+    await apiCommand(["_apis/example", "--input", file, "--content-type", "application/octet-stream"]);
+    expect(mockFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      method: "POST", body: Buffer.from([0, 255, 42]), headers: expect.objectContaining({ "Content-Type": "application/octet-stream" }),
+    }));
+  });
+
+  it.each([
+    ["HEAD", "_apis/example"],
+    ["head", "_apis/example", "--raw"],
+    ["https://dev.azure.com/acme/_apis/example", "--method", "HEAD"],
+    ["_apis/example", "--method", "head", "--raw"],
+  ])("returns HEAD response headers without enabling writes for %j", async (...argv) => {
+    vi.stubEnv("ADO_AXI_WRITES", "0");
+    mockFetch.mockResolvedValue(new Response(null, { headers: { ETag: '"revision-7"', "Content-Length": "42" } }));
+    const result = await apiCommand(argv);
+    expect(result).toEqual({
+      request: { method: "HEAD", url: expect.any(String) },
+      headers: { etag: '"revision-7"', "content-length": "42" },
+    });
+    expect(mockFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ method: "HEAD" }));
+  });
+
+  it("rejects pagination on writes before contacting Azure DevOps", async () => {
+    await expect(apiCommand(["POST", "_apis/example", "--paginate"])).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});

@@ -1,4 +1,5 @@
 import { AxiError } from "axi-sdk-js";
+import { readFile } from "node:fs/promises";
 import { assertKnownFlags, flagBool, flagNumber, flagString, parseArgs } from "../lib/args.js";
 import { buildUrl, request, type AdoHost } from "../lib/client.js";
 import { ADO_HOSTS, normalizeOrg, parseAdoApiUrl } from "../lib/adoUrl.js";
@@ -19,6 +20,8 @@ const API_FLAGS = [
   "raw",
   "limit",
   "content-type",
+  "input",
+  "paginate",
 ];
 const HOSTS = Object.keys(ADO_HOSTS);
 const CONTENT_TYPES: Record<string, string> = {
@@ -42,13 +45,13 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
 
   let method = flagString(args, "method")?.toUpperCase();
   let path = args.positionals[0];
-  if (path && /^(GET|POST|PATCH|PUT|DELETE)$/i.test(path)) {
+  if (path && /^(GET|HEAD|POST|PATCH|PUT|DELETE)$/i.test(path)) {
     method = path.toUpperCase();
     path = args.positionals[1];
   }
   if (!path) {
     throw new AxiError("an API path is required", "VALIDATION_ERROR", [
-      "Usage: ado-axi api [GET|POST|PATCH|PUT|DELETE] <path|url> [--body '<json>'] [--query 'k=v&k2=v2']",
+      "Usage: ado-axi api [GET|HEAD|POST|PATCH|PUT|DELETE] <path|url> [--body '<json>' | --input <file>] [--query 'k=v&k2=v2']",
       "Example: ado-axi api _apis/wiki/wikis",
       "Example: ado-axi api POST _apis/wit/wiql --body '{\"query\":\"SELECT [System.Id] FROM WorkItems\"}'",
       "Use a relative path (--no-project for org-level paths) or a full HTTPS Azure DevOps REST URL",
@@ -110,7 +113,11 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
 
   let body: unknown;
   const rawBody = flagString(args, "body");
-  const stdinBody = rawBody === undefined ? await readStdinIfPiped() : undefined;
+  const input = flagString(args, "input");
+  if (input !== undefined && rawBody !== undefined) {
+    throw new AxiError("--input and --body cannot be combined", "VALIDATION_ERROR");
+  }
+  const stdinBody = rawBody === undefined && input === undefined ? await readStdinIfPiped() : undefined;
   if (rawBody !== undefined) {
     try {
       body = JSON.parse(rawBody);
@@ -118,6 +125,12 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
       throw new AxiError("--body expects valid JSON", "VALIDATION_ERROR", [
         `Example: --body '{"query":"SELECT [System.Id] FROM WorkItems"}'`,
       ]);
+    }
+  } else if (input !== undefined) {
+    try {
+      body = await readFile(input);
+    } catch {
+      throw new AxiError("cannot read --input file", "VALIDATION_ERROR");
     }
   } else if (stdinBody !== undefined) {
     body = stdinBody;
@@ -147,8 +160,37 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
   };
 
   assertWritesEnabled(!["GET", "HEAD", "OPTIONS"].includes(options.method));
+  const paginate = flagBool(args, "paginate");
+  if (paginate && (options.method !== "GET" || options.raw || body !== undefined)) {
+    throw new AxiError("--paginate requires GET with a JSON response and no body", "VALIDATION_ERROR");
+  }
   const url = buildUrl(profile, options);
-  const result = await request<unknown>(profile, options);
+  let token: string | null = null;
+  const pages: unknown[] = [];
+  const seen = new Set<string>();
+  let result: unknown;
+  do {
+    let responseHeaders = new Headers();
+    result = await request<unknown>(profile, {
+      ...options,
+      onHeaders: (headers) => { responseHeaders = headers; },
+    });
+    if (options.method === "HEAD") {
+      return { request: { method: options.method, url }, headers: Object.fromEntries(responseHeaders) };
+    }
+    if (!paginate) break;
+    pages.push(result);
+    const bodyToken = result && typeof result === "object" && "continuationToken" in result
+      ? (result as { continuationToken: unknown }).continuationToken : undefined;
+    token = responseHeaders.get("x-ms-continuationtoken") || (typeof bodyToken === "string" ? bodyToken : null);
+    if (token) {
+      if (seen.has(token)) throw new AxiError("pagination returned a repeated continuation token", "API_ERROR");
+      seen.add(token);
+      query.continuationToken = token;
+    }
+  } while (token);
+
+  if (paginate) return { request: { method: options.method, url }, pages };
 
   if (typeof result === "string") {
     const text = truncate(result, flagBool(args, "full") ? Number.MAX_SAFE_INTEGER : 4000);

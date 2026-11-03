@@ -311,6 +311,8 @@ Anything without a dedicated command, such as test plans or code search, goes th
 
 ```sh
 ado-axi api _apis/testplan/plans --query 'filterActivePlans=true'
+ado-axi api _apis/graph/users --host vssps --no-project --paginate
+ado-axi api POST _apis/wit/attachments --input payload.bin --query 'fileName=payload.bin' --content-type application/octet-stream
 ado-axi api POST _apis/search/codesearchresults --host almsearch --body '{"searchText":"TODO"}'
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ado-axi api _apis/projects --no-project           # organization-level path
@@ -321,10 +323,11 @@ ado-axi api PATCH _apis/wit/workitems/4211 --content-type json-patch \
 
 Relative paths use `https://dev.azure.com/<org>/<project>/`.
 See [README behavior](README.md#behavior) for supported REST hosts and `--host` values.
+See [README usage](README.md#use) for pagination, HEAD output, file input, and request-body precedence.
 Full HTTPS REST URLs supply org/project/host/query, replace default context, and use matching profile authentication.
 Conflicting flags or a `--profile` from another org are rejected; do not override URL context.
-Quote URLs with query parameters. When `--body` is omitted and stdin is piped,
-stdin is sent unchanged as the request body. `--content-type` accepts the shorthands
+Quote URLs with query parameters.
+`--content-type` accepts the shorthands
 `json` (default), `json-patch`, `merge-patch`, `text`, or any media type — work item writes
 require `json-patch`. Use `--raw` for endpoints that return plain text, such as build logs.
 

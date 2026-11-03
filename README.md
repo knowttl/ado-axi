@@ -150,8 +150,16 @@ ado-axi wiki list --limit 20
 ado-axi wiki page get --wiki <id> --path /Home --full
 ado-axi wiki page update --wiki <id> --path /Home --file ./Home.md
 ado-axi api _apis/testplan/plans            # anything not covered by a command
+ado-axi api _apis/graph/users --host vssps --no-project --paginate
+ado-axi api POST _apis/wit/attachments --input payload.bin --query 'fileName=payload.bin' --content-type application/octet-stream
 cat payload.bin | ado-axi api POST _apis/wit/attachments --query 'fileName=payload.bin' --content-type application/octet-stream
 ```
+
+`api --paginate` requires GET with no request body and without `--raw`; it follows `x-ms-continuationtoken` response headers or string `continuationToken` JSON fields and returns each response in `pages`.
+Endpoints that only support `$top` and `$skip` require explicit requests.
+`api HEAD` returns response headers in `headers` for endpoints that support HEAD.
+`--input <file>` sends file bytes as the request body, takes precedence over piped stdin, and cannot be combined with `--body`.
+Supplying a body through `--input`, `--body`, or stdin defaults the method to POST unless a method is specified.
 
 Use `work-item attach` to upload and link a local file, and `work-item attachment get` to download it by name.
 See [attachment usage and recovery](doc/work-item-writes.md#attachments-td-062) for file requirements, size limits, revision guards, output fields, and overwrite behavior.
@@ -202,7 +210,7 @@ Unknown aliases and API-rejected reference names produce errors.
   For relative paths, `--host` accepts `dev` (default), `vsrm`, `vssps`, `almsearch`, or `vsaex`.
   Full URLs supply org/project/host/query, select matching profile authentication, and do not inherit default project context.
   Conflicting flags or profiles from another org fail locally; credentials, custom ports, fragments, dot segments, and duplicate query keys in URLs are rejected.
-- **Piped input.** `api` sends piped stdin as the raw request body when `--body` is omitted;
+- **Piped input.** `api` sends piped stdin as the raw request body when both `--body` and `--input` are omitted;
   work-item and PR descriptions plus every comment command read stdin when their content flag is omitted.
   For Markdown or multiline comments, use a quoted heredoc — never `--body "..."` with backticks,
   `$`, `!`, or quotes. See [safe shell-input guidance](SKILL.md#safe-shell-input).
