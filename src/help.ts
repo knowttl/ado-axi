@@ -357,7 +357,7 @@ export const COMMAND_HELP: Record<string, string> = {
     "URLs with credentials, custom ports, fragments, dot segments, or duplicate query keys are rejected.",
     "Work item writes require --content-type json-patch.",
     "Use --raw for endpoints that return plain text, such as build logs.",
-    "When --body is omitted and stdin is piped, stdin is sent as the raw request body (use --content-type as needed).",
+    "When both --body and --input are omitted and stdin is piped, stdin is sent as the raw request body (use --content-type as needed).",
     "--input sends file bytes as the request body; it cannot be combined with --body.",
     "--paginate follows continuation tokens in headers or JSON bodies for GET requests and returns pages.",
     "It does not automatically paginate endpoints that only support $top and $skip.",
