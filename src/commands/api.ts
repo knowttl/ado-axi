@@ -170,16 +170,19 @@ export async function apiCommand(argv: string[]): Promise<Record<string, unknown
   const seen = new Set<string>();
   let result: unknown;
   do {
-    let headerToken: string | null = null;
+    let responseHeaders = new Headers();
     result = await request<unknown>(profile, {
       ...options,
-      onHeaders: (headers) => { headerToken = headers.get("x-ms-continuationtoken"); },
+      onHeaders: (headers) => { responseHeaders = headers; },
     });
+    if (options.method === "HEAD") {
+      return { request: { method: options.method, url }, headers: Object.fromEntries(responseHeaders) };
+    }
     if (!paginate) break;
     pages.push(result);
     const bodyToken = result && typeof result === "object" && "continuationToken" in result
       ? (result as { continuationToken: unknown }).continuationToken : undefined;
-    token = headerToken || (typeof bodyToken === "string" ? bodyToken : null);
+    token = responseHeaders.get("x-ms-continuationtoken") || (typeof bodyToken === "string" ? bodyToken : null);
     if (token) {
       if (seen.has(token)) throw new AxiError("pagination returned a repeated continuation token", "API_ERROR");
       seen.add(token);

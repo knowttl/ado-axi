@@ -150,10 +150,19 @@ describe("api requests", () => {
     }));
   });
 
-  it("issues HEAD without enabling writes", async () => {
+  it.each([
+    ["HEAD", "_apis/example"],
+    ["head", "_apis/example", "--raw"],
+    ["https://dev.azure.com/acme/_apis/example", "--method", "HEAD"],
+    ["_apis/example", "--method", "head", "--raw"],
+  ])("returns HEAD response headers without enabling writes for %j", async (...argv) => {
     vi.stubEnv("ADO_AXI_WRITES", "0");
-    mockFetch.mockResolvedValue(new Response(null));
-    await apiCommand(["HEAD", "_apis/example"]);
+    mockFetch.mockResolvedValue(new Response(null, { headers: { ETag: '"revision-7"', "Content-Length": "42" } }));
+    const result = await apiCommand(argv);
+    expect(result).toEqual({
+      request: { method: "HEAD", url: expect.any(String) },
+      headers: { etag: '"revision-7"', "content-length": "42" },
+    });
     expect(mockFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ method: "HEAD" }));
   });
 
