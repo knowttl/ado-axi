@@ -1,6 +1,7 @@
 # ado-axi (Azure DevOps axi)
 
 This is a fork of [jeffreyhaen/ado-axi](https://github.com/jeffreyhaen/ado-axi), maintained at [knowttl/ado-axi](https://github.com/knowttl/ado-axi).
+See [fork differences](https://github.com/knowttl/ado-axi/blob/main/doc/fork-differences.md) for its scope and update route.
 
 [![npm](https://img.shields.io/npm/v/%40knowttl%2Fado-axi.svg)](https://www.npmjs.com/package/@knowttl/ado-axi)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -258,6 +259,9 @@ pnpm install
 pnpm run build
 pnpm test
 ```
+
+Run `pnpm test:install` to check the published npm package in a clean temporary prefix.
+This check requires network access and is separate from the default test suite.
 
 ### Releasing
 

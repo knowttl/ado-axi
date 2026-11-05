@@ -45,6 +45,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tooling.json",
     "dev": "tsx src/bin/ado-axi.ts",
     "test": "vitest run",
+    "test:install": "tsx scripts/check-npm-install.ts",
     "test:watch": "vitest",
     "bench": "node scripts/benchmark/bench.ts",
     "bench:capture": "node scripts/benchmark/capture.ts",
