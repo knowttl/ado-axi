@@ -37,7 +37,7 @@ numbers against your own organization.
 
 ## Install
 
-Install globally (recommended for repeated use):
+Install or update globally (recommended for repeated use):
 
 ```sh
 npm install -g @knowttl/ado-axi

@@ -10,6 +10,5 @@ Changes in this fork since the common ancestor include:
 - Pipeline, repository, policy, and wiki administration, plus artifact downloads and Classic releases.
 - Raw API pagination, file input, and HEAD requests.
 
-Install or update the maintained fork with `npm install -g @knowttl/ado-axi`.
-For a one-off invocation, use `npx -y @knowttl/ado-axi --help`.
+See the [installation instructions](https://github.com/knowttl/ado-axi/blob/main/README.md#install) to install or update the maintained fork, or invoke it once.
 Its releases and issue tracker are maintained in [knowttl/ado-axi](https://github.com/knowttl/ado-axi).
