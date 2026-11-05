@@ -3,6 +3,13 @@
 All notable changes to ado-axi are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.2](https://github.com/knowttl/ado-axi/compare/v0.5.1...v0.5.2) (2026-11-05)
+
+
+### Features
+
+* add API pagination, file input, and HEAD support ([#17](https://github.com/knowttl/ado-axi/issues/17)) ([f26e8c6](https://github.com/knowttl/ado-axi/commit/f26e8c64fa517eadf17747be97520d62a928a7f4))
+
 ## [0.5.1](https://github.com/knowttl/ado-axi/compare/v0.5.0...v0.5.1) (2026-10-31)
 
 
